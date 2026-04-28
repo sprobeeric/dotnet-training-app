@@ -1,0 +1,37 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      ASPNETCORE_HTTP_PORTS: 8080
+      ConnectionStrings__DocumentTracker: Host=postgres;Port=5432;Database=document_tracker;Username=postgres;Password=${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}
+      Training__CurrentUserRole: ${DOCUMENTTRACKER_ROLE:-DocumentAdmin}
+    volumes:
+      - documenttracker-data-protection-keys:/root/.aspnet/DataProtection-Keys
+    ports:
+      - "8080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: document_tracker
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}
+    volumes:
+      - documenttracker-prod-postgres-data:/var/lib/postgresql/data
+      - ./database/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
+      - ./database/seed.sql:/docker-entrypoint-initdb.d/02-seed.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d document_tracker"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  documenttracker-prod-postgres-data:
+  documenttracker-data-protection-keys:

@@ -14,6 +14,11 @@ It intentionally avoids Entity Framework Core, Minimal APIs, Blazor, React, comp
 - `src/DocumentTracker/Views`: Razor pages for list, details, create, edit, and soft delete confirmation.
 - `database`: PostgreSQL schema and seed scripts.
 - `tests/DocumentTracker.Tests`: xUnit tests for services, controllers, SQL inspection, and an optional PostgreSQL-backed repository example.
+- `Dockerfile`: production-style container build for the MVC app.
+- `docker-compose.yml`: local PostgreSQL-only development stack.
+- `docker-compose.production.example.yml`: app-plus-database deployment example.
+- `src/DocumentTracker/libman.json`: pinned client-side library restore for Bootstrap, jQuery, and validation scripts.
+- `docs/deployment.md`: deployment and production configuration notes.
 
 ## Setup
 
@@ -65,6 +70,25 @@ export ConnectionStrings__DocumentTracker="Host=localhost;Port=5433;Database=doc
 
 If port `5433` is already in use, change the host-side port in `docker-compose.yml` and update the connection string to match.
 
+## Client-Side Library Provisioning
+
+`wwwroot/lib/` is not committed source. It is generated from `src/DocumentTracker/libman.json` during build through `Microsoft.Web.LibraryManager.Build`.
+
+The pinned libraries are:
+
+- Bootstrap `5.3.3`
+- jQuery `3.7.1`
+- jQuery Validation `1.21.0`
+- jQuery Validation Unobtrusive `4.0.0`
+
+To restore them explicitly:
+
+```bash
+dotnet build src/DocumentTracker/DocumentTracker.csproj
+```
+
+This keeps the app realistic: frontend assets are versioned by manifest, restored during builds, and excluded from Git.
+
 ## Role Check
 
 Soft delete requires the `DocumentAdmin` role. This training app does not use a full authentication framework. The role provider first checks `HttpContext.User.IsInRole("DocumentAdmin")`, then falls back to:
@@ -115,6 +139,31 @@ Reset PostgreSQL data, schema, and seed rows:
 docker compose down -v
 docker compose up -d
 ```
+
+## Production-Style Deployment
+
+Build the app container:
+
+```bash
+docker build -t documenttracker:local .
+```
+
+Run the production example stack:
+
+```bash
+cp .env.example .env
+docker compose -f docker-compose.production.example.yml up --build -d
+```
+
+The app listens on `http://localhost:8080` in the production example. The health endpoint is available at:
+
+```text
+http://localhost:8080/health
+```
+
+See `docs/deployment.md` for production configuration notes, including environment variables and the limits of the training role fallback.
+
+The production Compose example also persists ASP.NET Core Data Protection keys in a named volume so antiforgery tokens and future cookie-based features survive container restarts.
 
 ## Feature Walkthrough
 

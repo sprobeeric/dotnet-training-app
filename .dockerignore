@@ -1,0 +1,13 @@
+**/.git
+**/.vs
+**/.vscode
+**/.idea
+**/bin
+**/obj
+src/DocumentTracker/wwwroot/lib
+**/TestResults
+**/coverage
+**/.DS_Store
+.env
+.env.*
+!*.env.example
