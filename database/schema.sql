@@ -22,3 +22,65 @@ CREATE INDEX IF NOT EXISTS ix_documents_search_title
 
 CREATE INDEX IF NOT EXISTS ix_documents_search_document_number
     ON documents (lower(document_number));
+
+CREATE TABLE IF NOT EXISTS products (
+    id INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    unit_price NUMERIC(18,2) NOT NULL,
+    created_at_utc timestamp with time zone NOT NULL,
+    updated_at_utc timestamp with time zone NOT NULL,
+    deleted_at_utc timestamp with time zone NULL,
+    CONSTRAINT uq_products_name UNIQUE (name),
+    CONSTRAINT ck_products_unit_price_non_negative CHECK (unit_price >= 0)
+);
+
+CREATE TABLE IF NOT EXISTS payment_receipts (
+    id INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    receipt_number VARCHAR(100) NOT NULL UNIQUE,
+    payment_date_utc timestamp with time zone NOT NULL,
+    reference_number VARCHAR(100) NOT NULL UNIQUE,
+    total_amount NUMERIC(18,2) NOT NULL,
+    received NUMERIC(18,2) NOT NULL,
+    change_amount NUMERIC(18,2) NOT NULL,
+    created_at_utc timestamp with time zone NOT NULL,
+    updated_at_utc timestamp with time zone NOT NULL,
+    deleted_at_utc timestamp with time zone NULL,
+    CONSTRAINT ck_payment_receipts_total_amount_non_negative CHECK (total_amount >= 0),
+    CONSTRAINT ck_payment_receipts_received_non_negative CHECK (received >= 0),
+    CONSTRAINT ck_payment_receipts_change_amount_non_negative CHECK (change_amount >= 0),
+    CONSTRAINT ck_payment_receipts_received_covers_total CHECK (received >= total_amount),
+    CONSTRAINT ck_payment_receipts_change_amount_correct CHECK (change_amount = received - total_amount)
+);
+
+CREATE TABLE IF NOT EXISTS payment_receipt_products (
+    payment_receipt_id INTEGER NOT NULL,
+    product_id INTEGER NOT NULL,
+    quantity INTEGER NOT NULL,
+    unit_price NUMERIC(18,2) NOT NULL,
+    line_total NUMERIC(18,2) NOT NULL,
+
+    PRIMARY KEY (payment_receipt_id, product_id),
+
+    CONSTRAINT ck_payment_receipt_products_quantity_positive CHECK (quantity > 0),
+    CONSTRAINT ck_payment_receipt_products_unit_price_non_negative CHECK (unit_price >= 0),
+    CONSTRAINT ck_payment_receipt_products_line_total_non_negative CHECK (line_total >= 0),
+    CONSTRAINT ck_payment_receipt_products_line_total_correct CHECK (line_total = quantity * unit_price),
+    
+    CONSTRAINT fk_payment_receipt_products_payment_receipt
+        FOREIGN KEY (payment_receipt_id)
+        REFERENCES payment_receipts(id)
+        ON DELETE CASCADE,
+    CONSTRAINT fk_payment_receipt_products_product
+        FOREIGN KEY (product_id)
+        REFERENCES products(id)
+        ON DELETE RESTRICT
+);
+
+CREATE INDEX IF NOT EXISTS idx_payment_receipts_payment_date
+    ON payment_receipts(payment_date_utc);
+
+CREATE INDEX IF NOT EXISTS idx_payment_receipts_deleted_at
+    ON payment_receipts(deleted_at_utc);
+
+CREATE INDEX IF NOT EXISTS idx_payment_receipt_products_product_id
+    ON payment_receipt_products(product_id);
