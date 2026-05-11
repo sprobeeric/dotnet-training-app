@@ -29,4 +29,5 @@ VALUES
     ('Cookies and Cream Milk Tea', 145.00, now() at time zone 'utc', now() at time zone 'utc'),
     ('Salted Caramel Milk Tea', 145.00, now() at time zone 'utc', now() at time zone 'utc'),
     ('Yakult Green Tea', 125.00, now() at time zone 'utc', now() at time zone 'utc'),
-    ('Black Tea Macchiato', 135.00, now() at time zone 'utc', now() at time zone 'utc');
+    ('Black Tea Macchiato', 135.00, now() at time zone 'utc', now() at time zone 'utc')
+ON CONFLICT (name) DO NOTHING;

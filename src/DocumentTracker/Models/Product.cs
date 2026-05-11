@@ -7,5 +7,6 @@ public class Product
     public decimal UnitPrice { get; set; }
     public DateTime CreatedAtUtc { get; set; }
     public DateTime UpdatedAtUtc { get; set; }
+    public DateTime? DeletedAtUtc { get; set; }
     public ICollection<PaymentReceiptProduct> PaymentReceiptProducts { get; set; } = new List<PaymentReceiptProduct>();
 }
