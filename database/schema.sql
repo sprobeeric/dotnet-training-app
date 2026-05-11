@@ -64,6 +64,7 @@ CREATE TABLE IF NOT EXISTS payment_receipt_products (
     CONSTRAINT ck_payment_receipt_products_quantity_positive CHECK (quantity > 0),
     CONSTRAINT ck_payment_receipt_products_unit_price_non_negative CHECK (unit_price >= 0),
     CONSTRAINT ck_payment_receipt_products_line_total_non_negative CHECK (line_total >= 0),
+    CONSTRAINT ck_payment_receipt_products_line_total_correct CHECK (line_total = quantity * unit_price),
     
     CONSTRAINT fk_payment_receipt_products_payment_receipt
         FOREIGN KEY (payment_receipt_id)
