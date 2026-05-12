@@ -29,6 +29,14 @@ public class PaymentReceiptService : IPaymentReceiptService
         _logger = logger;
     }
 
+    public async Task<PaymentReceiptDetailsViewModel?> GetDetailsAsync(int id)
+    {
+        var receipt = await _paymentReceiptRepository.GetByIdAsync(id);
+        return receipt is null || receipt.DeletedAtUtc is not null
+            ? null
+            : ToDetails(receipt);
+    }
+
     public async Task<PaymentReceiptCreateViewModel> GetCreateAsync()
     {
         return new PaymentReceiptCreateViewModel
@@ -115,18 +123,7 @@ public class PaymentReceiptService : IPaymentReceiptService
 
         return new PaginatedResult<PaymentReceiptListItemViewModel>
         {
-            Items = paymentReceipts.Items
-                .Select(paymentReceipt => new PaymentReceiptListItemViewModel
-                {
-                    Id = paymentReceipt.Id,
-                    ReceiptNumber = paymentReceipt.ReceiptNumber,
-                    ReferenceNumber = paymentReceipt.ReferenceNumber,
-                    PaymentDateUtc = paymentReceipt.PaymentDateUtc,
-                    TotalAmount = paymentReceipt.TotalAmount,
-                    Received = paymentReceipt.Received,
-                    ChangeAmount = paymentReceipt.ChangeAmount
-                })
-                .ToList(),
+            Items = paymentReceipts.Items.Select(ToListItem).ToList(),
             Total = paymentReceipts.Total
         };
     }
@@ -156,4 +153,37 @@ public class PaymentReceiptService : IPaymentReceiptService
             Quantity = submittedQuantities.TryGetValue(product.Id, out var quantity) ? quantity : 0
         }).ToList();
     }
+
+    private static PaymentReceiptListItemViewModel ToListItem(PaymentReceipt paymentReceipt) => new()
+    {
+        Id = paymentReceipt.Id,
+        ReceiptNumber = paymentReceipt.ReceiptNumber,
+        ReferenceNumber = paymentReceipt.ReferenceNumber,
+        PaymentDateUtc = paymentReceipt.PaymentDateUtc,
+        TotalAmount = paymentReceipt.TotalAmount,
+        Received = paymentReceipt.Received,
+        ChangeAmount = paymentReceipt.ChangeAmount
+    };
+
+    private static PaymentReceiptDetailsViewModel ToDetails(PaymentReceipt receipt) => new()
+    {
+        Id = receipt.Id,
+        ReceiptNumber = receipt.ReceiptNumber,
+        PaymentDateUtc = receipt.PaymentDateUtc,
+        ReferenceNumber = receipt.ReferenceNumber,
+        TotalAmount = receipt.TotalAmount,
+        Received = receipt.Received,
+        ChangeAmount = receipt.ChangeAmount,
+        CreatedAtUtc = receipt.CreatedAtUtc,
+        UpdatedAtUtc = receipt.UpdatedAtUtc,
+        Products = receipt.PaymentReceiptProducts.Select(ToProductDetails).ToList()
+    };
+
+    private static PaymentReceiptProductDetailsViewModel ToProductDetails(PaymentReceiptProduct item) => new()
+    {
+        ProductId = item.ProductId,
+        ProductName = item.Product.Name,
+        UnitPrice = item.UnitPrice,
+        Quantity = item.Quantity
+    };
 }

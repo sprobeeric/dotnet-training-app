@@ -36,6 +36,31 @@ public static class PaymentReceiptSql
         deleted_at_utc AS DeletedAtUtc
         """;
 
+    public const string GetById = $"""
+        SELECT {SelectColumns}
+        FROM payment_receipts
+        WHERE id = @Id;
+        """;
+
+    public const string GetProductsByReceiptId = """
+        SELECT
+            prp.payment_receipt_id AS PaymentReceiptId,
+            prp.product_id AS ProductId,
+            prp.quantity AS Quantity,
+            prp.unit_price AS UnitPrice,
+            prp.line_total AS LineTotal,
+            p.id AS Id,
+            p.name AS Name,
+            p.unit_price AS UnitPrice,
+            p.created_at_utc AS CreatedAtUtc,
+            p.updated_at_utc AS UpdatedAtUtc,
+            p.deleted_at_utc AS DeletedAtUtc
+        FROM payment_receipt_products prp
+        INNER JOIN products p ON p.id = prp.product_id
+        WHERE prp.payment_receipt_id = @PaymentReceiptId
+        ORDER BY p.name ASC;
+        """;
+
     public static string SearchPaymentReceipts(string sortBy, string orderBy) => $"""
         SELECT {SelectColumns}
         FROM payment_receipts

@@ -16,7 +16,7 @@ public class PaymentReceiptNumberGenerator : IPaymentReceiptNumberGenerator
         var paymentDateUtc = DateTime.UtcNow;
         var paymentDate = DateOnly.FromDateTime(paymentDateUtc);
         var nextSequence = await _paymentReceiptRepository.GetNextReceiptSequenceAsync(paymentDate);
-        var receiptNumber = $"RCP-{paymentDate:yyyyMMdd}-{nextSequence:D6}";
+        var receiptNumber = $"PR-{paymentDate:yyyyMMdd}-{nextSequence:D6}";
         var referenceNumber = BuildReferenceNumber(paymentDate, nextSequence);
 
         return (receiptNumber, referenceNumber, paymentDateUtc);

@@ -15,12 +15,39 @@ public class PaymentReceiptRepository : IPaymentReceiptRepository
         _logger = logger;
     }
 
+    public async Task<PaymentReceipt?> GetByIdAsync(int id)
+    {
+        await using var connection = await _dataSource.OpenConnectionAsync();
+
+        var receipt = await connection.QuerySingleOrDefaultAsync<PaymentReceipt>(
+            PaymentReceiptSql.GetById,
+            new { Id = id });
+
+        if (receipt is null)
+        {
+            return null;
+        }
+
+        var products = await connection.QueryAsync<PaymentReceiptProduct, Product, PaymentReceiptProduct>(
+            PaymentReceiptSql.GetProductsByReceiptId,
+            (receiptProduct, product) =>
+            {
+                receiptProduct.Product = product;
+                return receiptProduct;
+            },
+            new { PaymentReceiptId = id },
+            splitOn: "Id");
+
+        receipt.PaymentReceiptProducts = products.AsList();
+        return receipt;
+    }
+
     public async Task<int> GetNextReceiptSequenceAsync(DateOnly paymentDate)
     {
         await using var connection = await _dataSource.OpenConnectionAsync();
         return await connection.ExecuteScalarAsync<int>(
             PaymentReceiptSql.GetNextReceiptSequence,
-            new { ReceiptPrefix = $"RCP-{paymentDate:yyyyMMdd}" });
+            new { ReceiptPrefix = $"PR-{paymentDate:yyyyMMdd}" });
     }
 
     public async Task<int> CreateAsync(PaymentReceipt paymentReceipt, IReadOnlyList<PaymentReceiptProduct> products)

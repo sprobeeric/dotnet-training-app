@@ -48,6 +48,12 @@ public class PaymentReceiptController : Controller
         });
     }
 
+    public async Task<IActionResult> Details(int id)
+    {
+        var receipt = await _paymentReceiptService.GetDetailsAsync(id);
+        return receipt is null ? NotFound() : View(receipt);
+    }
+    
     public async Task<IActionResult> Create()
     {
         return View(await _paymentReceiptService.GetCreateAsync());
@@ -73,7 +79,7 @@ public class PaymentReceiptController : Controller
         }
 
         TempData["SuccessMessage"] = "Payment receipt created.";
-        return RedirectToAction(nameof(Create));
+        return RedirectToAction(nameof(Details), new { id = result.Value });
     }
 
     private static void MergeSubmittedQuantities(PaymentReceiptCreateViewModel target, PaymentReceiptCreateViewModel source)

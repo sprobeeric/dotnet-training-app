@@ -4,6 +4,8 @@ namespace DocumentTracker.Repositories;
 
 public interface IPaymentReceiptRepository
 {
+    Task<PaymentReceipt?> GetByIdAsync(int id);
+
     Task<int> GetNextReceiptSequenceAsync(DateOnly paymentDate);
     Task<int> CreateAsync(PaymentReceipt paymentReceipt, IReadOnlyList<PaymentReceiptProduct> products);
     Task<PaginatedResult<PaymentReceipt>> SearchAsync(
