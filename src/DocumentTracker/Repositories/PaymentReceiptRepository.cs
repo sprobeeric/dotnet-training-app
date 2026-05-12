@@ -41,19 +41,68 @@ public class PaymentReceiptRepository : IPaymentReceiptRepository
         receipt.PaymentReceiptProducts = products.AsList();
         return receipt;
     }
+    
+    public async Task<int> GetNextReceiptSequenceAsync(DateOnly paymentDate)
+    {
+        await using var connection = await _dataSource.OpenConnectionAsync();
+        return await connection.ExecuteScalarAsync<int>(
+            PaymentReceiptSql.GetNextReceiptSequence,
+            new { ReceiptPrefix = $"RCP-{paymentDate:yyyyMMdd}" });
+    }
+
+    public async Task<int> CreateAsync(PaymentReceipt paymentReceipt, IReadOnlyList<PaymentReceiptProduct> products)
+    {
+        await using var connection = await _dataSource.OpenConnectionAsync();
+        await using var transaction = await connection.BeginTransactionAsync();
+
+        var id = await connection.ExecuteScalarAsync<int>(
+            PaymentReceiptSql.InsertPaymentReceipt,
+            new
+            {
+                paymentReceipt.ReceiptNumber,
+                paymentReceipt.PaymentDateUtc,
+                paymentReceipt.ReferenceNumber,
+                paymentReceipt.TotalAmount,
+                paymentReceipt.Received,
+                paymentReceipt.ChangeAmount,
+                paymentReceipt.CreatedAtUtc,
+                paymentReceipt.UpdatedAtUtc
+            },
+            transaction);
+
+        foreach (var product in products)
+        {
+            await connection.ExecuteAsync(
+                PaymentReceiptSql.InsertPaymentReceiptProduct,
+                new
+                {
+                    PaymentReceiptId = id,
+                    product.ProductId,
+                    product.Quantity,
+                    product.UnitPrice,
+                    product.LineTotal
+                },
+                transaction);
+        }
+
+        await transaction.CommitAsync();
+        _logger.LogInformation("Created payment receipt with id {PaymentReceiptId}.", id);
+        return id;
+    }
 
     public async Task<PaginatedResult<PaymentReceipt>> SearchAsync(
-        string? searchTerm, 
-        DateTime? dateFrom, 
+        string? searchTerm,
+        DateTime? dateFrom,
         DateTime? dateTo,
         string sort,
         string order,
-        int page, 
+        int page,
         int pageSize)
     {
         var normalizedSearch = string.IsNullOrWhiteSpace(searchTerm) ? null : searchTerm.Trim();
-
-        var offset = (page - 1) * pageSize;
+        var normalizedPage = page < 1 ? 1 : page;
+        var normalizedPageSize = pageSize < 1 ? 10 : pageSize;
+        var offset = (normalizedPage - 1) * normalizedPageSize;
 
         var allowedSorts = new Dictionary<string, string>
         {
@@ -65,14 +114,8 @@ public class PaymentReceiptRepository : IPaymentReceiptRepository
             ["change_amount"] = "change_amount"
         };
 
-        var sortBy = allowedSorts.GetValueOrDefault(
-            sort ?? "",
-            "payment_date_utc"
-        );
-
-        var orderBy = order?.ToLower() == "asc"
-            ? "ASC"
-            : "DESC";
+        var sortBy = allowedSorts.GetValueOrDefault(sort ?? string.Empty, "payment_date_utc");
+        var orderBy = string.Equals(order, "asc", StringComparison.OrdinalIgnoreCase) ? "ASC" : "DESC";
 
         await using var connection = await _dataSource.OpenConnectionAsync();
         var sql = PaymentReceiptSql.SearchPaymentReceipts(sortBy, orderBy);
@@ -82,9 +125,9 @@ public class PaymentReceiptRepository : IPaymentReceiptRepository
             {
                 SearchTerm = normalizedSearch,
                 SearchPattern = normalizedSearch is null ? null : $"%{normalizedSearch}%",
-                DateFrom = dateFrom,
+                DateFrom = dateFrom?.Date,
                 DateTo = dateTo?.Date.AddDays(1),
-                PageSize = pageSize,
+                PageSize = normalizedPageSize,
                 Offset = offset
             });
 
@@ -93,15 +136,12 @@ public class PaymentReceiptRepository : IPaymentReceiptRepository
             new
             {
                 SearchTerm = normalizedSearch,
-                SearchPattern = normalizedSearch is null
-                    ? null
-                    : $"%{normalizedSearch}%",
-
+                SearchPattern = normalizedSearch is null ? null : $"%{normalizedSearch}%",
                 DateFrom = dateFrom?.Date,
                 DateTo = dateTo?.Date.AddDays(1)
             });
 
-         return new PaginatedResult<PaymentReceipt>
+        return new PaginatedResult<PaymentReceipt>
         {
             Items = paymentReceipts.AsList(),
             Total = total
