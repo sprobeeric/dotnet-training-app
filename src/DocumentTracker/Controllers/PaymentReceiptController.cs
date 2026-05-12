@@ -21,14 +21,17 @@ public class PaymentReceiptController : Controller
         int page = 1,
         int pageSize = 10)
     {
+        var normalizedPage = page < 1 ? 1 : page;
+        var normalizedPageSize = pageSize < 1 ? 10 : pageSize;
+
         var paymentReceipts = await _paymentReceiptService.SearchAsync(
             searchTerm,  
             dateFrom,  
             dateTo,
             sort,
             order,
-            page,
-            pageSize
+            normalizedPage,
+            normalizedPageSize
         );
 
         return View(new PaymentReceiptSearchViewModel
@@ -38,8 +41,8 @@ public class PaymentReceiptController : Controller
             DateTo = dateTo,
             Sort = sort,
             Order = order,
-            Page = page,
-            PageSize = pageSize,
+            Page = normalizedPage,
+            PageSize = normalizedPageSize,
             Total = paymentReceipts.Total,
             PaymentReceipts = paymentReceipts.Items
         });

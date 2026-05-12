@@ -54,21 +54,21 @@ SELECT
         'REF-%s-%s-%s',
         to_char(d::date, 'YYYYMMDD'),
         lpad(gs::text, 6, '0'),
-        upper(substr(md5(random()::text), 1, 6))
+        upper(substr(md5(gs::text), 1, 6))
     ) AS reference_number,
     totals.total_amount,
     totals.received,
     totals.received - totals.total_amount AS change_amount,
     now() at time zone 'utc',
     now() at time zone 'utc'
-FROM generate_series(6, 30) AS gs
+FROM generate_series(1, 25) AS gs
 CROSS JOIN LATERAL (
     SELECT
         ('2026-05-12'::date + ((gs - 1) / 5))::timestamp
 ) dates(d)
 CROSS JOIN LATERAL (
     SELECT
-        round((200 + random() * 500)::numeric, 2) AS total_amount
+        round((200 + (gs * 17 % 500))::numeric, 2) AS total_amount
 ) totals_base
 CROSS JOIN LATERAL (
     SELECT
@@ -92,12 +92,13 @@ SELECT
     qty.quantity * p.unit_price
 FROM payment_receipts pr
 CROSS JOIN LATERAL (
-    SELECT floor(random() * 20 + 1)::int AS id
-) random_product
+    SELECT ((right(pr.receipt_number, 6)::int - 1) % 20 + 1) AS id
+) selected_product
 JOIN products p
-    ON p.id = random_product.id
+    ON p.id = selected_product.id
 CROSS JOIN LATERAL (
-    SELECT floor(random() * 3 + 1)::int AS quantity
+    SELECT ((right(pr.receipt_number, 6)::int - 1) % 3 + 1) AS quantity
 ) qty
-WHERE pr.id BETWEEN 6 AND 30
+WHERE pr.receipt_number >= 'PR-20260512-000001'
+  AND pr.receipt_number <= 'PR-20260516-000025'
 ON CONFLICT DO NOTHING;

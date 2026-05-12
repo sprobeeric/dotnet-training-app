@@ -25,10 +25,8 @@ public class PaymentReceiptRepository : IPaymentReceiptRepository
         int pageSize)
     {
         var normalizedSearch = string.IsNullOrWhiteSpace(searchTerm) ? null : searchTerm.Trim();
-        var normalizedPage = page < 1 ? 1 : page;
-        var normalizedPageSize = pageSize < 1 ? 10 : pageSize;
 
-        var offset = (normalizedPage - 1) * normalizedPageSize;
+        var offset = (page - 1) * pageSize;
 
         var allowedSorts = new Dictionary<string, string>
         {
@@ -59,7 +57,7 @@ public class PaymentReceiptRepository : IPaymentReceiptRepository
                 SearchPattern = normalizedSearch is null ? null : $"%{normalizedSearch}%",
                 DateFrom = dateFrom,
                 DateTo = dateTo?.Date.AddDays(1),
-                PageSize = normalizedPageSize,
+                PageSize = pageSize,
                 Offset = offset
             });
 
