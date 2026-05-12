@@ -16,6 +16,9 @@ if (string.IsNullOrWhiteSpace(connectionString))
 builder.Services.AddSingleton(_ => NpgsqlDataSource.Create(connectionString));
 builder.Services.AddScoped<IDocumentRepository, DocumentRepository>();
 builder.Services.AddScoped<IDocumentService, DocumentService>();
+builder.Services.AddScoped<IProductRepository, ProductRepository>();
+builder.Services.AddScoped<IPaymentReceiptRepository, PaymentReceiptRepository>();
+builder.Services.AddScoped<IPaymentReceiptService, PaymentReceiptService>();
 builder.Services.AddScoped<ICurrentUserRoleProvider, AppSettingsCurrentUserRoleProvider>();
 
 var app = builder.Build();
@@ -37,7 +40,7 @@ app.MapStaticAssets();
 
 app.MapControllerRoute(
     name: "default",
-    pattern: "{controller=Documents}/{action=Index}/{id?}")
+    pattern: "{controller=PaymentReceipt}/{action=Create}/{id?}")
     .WithStaticAssets();
 
 

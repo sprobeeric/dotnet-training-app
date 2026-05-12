@@ -62,26 +62,4 @@ public class PaymentReceiptRepository : IPaymentReceiptRepository
         _logger.LogInformation("Created payment receipt with id {PaymentReceiptId}.", id);
         return id;
     }
-
-    public async Task<PaymentReceipt?> GetByIdAsync(int id)
-    {
-        await using var connection = await _dataSource.OpenConnectionAsync();
-        return await connection.QuerySingleOrDefaultAsync<PaymentReceipt>(PaymentReceiptSql.GetById, new { Id = id });
-    }
-
-    public async Task<IReadOnlyList<PaymentReceiptProduct>> ListProductsByReceiptIdAsync(int paymentReceiptId)
-    {
-        await using var connection = await _dataSource.OpenConnectionAsync();
-        var products = await connection.QueryAsync<PaymentReceiptProduct, Product, PaymentReceiptProduct>(
-            PaymentReceiptSql.ListProductsByReceiptId,
-            (paymentReceiptProduct, product) =>
-            {
-                paymentReceiptProduct.Product = product;
-                return paymentReceiptProduct;
-            },
-            new { PaymentReceiptId = paymentReceiptId },
-            splitOn: "Id");
-
-        return products.AsList();
-    }
 }

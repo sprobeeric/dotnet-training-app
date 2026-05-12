@@ -92,34 +92,6 @@ public class PaymentReceiptService : IPaymentReceiptService
         }
     }
 
-    public async Task<PaymentReceiptDetailsViewModel?> GetDetailsAsync(int id)
-    {
-        var paymentReceipt = await _paymentReceiptRepository.GetByIdAsync(id);
-        if (paymentReceipt is null)
-        {
-            return null;
-        }
-
-        var products = await _paymentReceiptRepository.ListProductsByReceiptIdAsync(id);
-        return new PaymentReceiptDetailsViewModel
-        {
-            Id = paymentReceipt.Id,
-            ReceiptNumber = paymentReceipt.ReceiptNumber,
-            ReferenceNumber = paymentReceipt.ReferenceNumber,
-            PaymentDateUtc = paymentReceipt.PaymentDateUtc,
-            TotalAmount = paymentReceipt.TotalAmount,
-            Received = paymentReceipt.Received,
-            ChangeAmount = paymentReceipt.ChangeAmount,
-            Products = products.Select(product => new PaymentReceiptDetailsProductViewModel
-            {
-                ProductName = product.Product.Name,
-                Quantity = product.Quantity,
-                UnitPrice = product.UnitPrice,
-                LineTotal = product.LineTotal
-            }).ToList()
-        };
-    }
-
     private static ServiceResult<int> Validate(PaymentReceiptCreateViewModel viewModel)
     {
         var result = new ServiceResult<int>();
