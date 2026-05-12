@@ -17,7 +17,7 @@ public class InvoiceServiceTests
         var service = new InvoiceService(_repository.Object);
 
         _repository
-            .Setup(repository => repository.SearchAsync("INV", invoiceDateFrom, invoiceDateTo, 2, 10))
+            .Setup(repository => repository.SearchAsync("INV", invoiceDateFrom, invoiceDateTo, "total", "desc", 2, 10))
             .ReturnsAsync(new PagedResult<Invoice>
             {
                 Items = [
@@ -36,7 +36,7 @@ public class InvoiceServiceTests
                 TotalCount = 12
             });
 
-        var result = await service.SearchAsync("INV", invoiceDateFrom, invoiceDateTo, 2, 10);
+        var result = await service.SearchAsync("INV", invoiceDateFrom, invoiceDateTo, "total", "desc", 2, 10);
 
         var invoice = Assert.Single(result.Items);
         Assert.Equal("INV-001", invoice.InvoiceNumber);

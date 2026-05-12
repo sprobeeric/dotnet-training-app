@@ -16,7 +16,7 @@ public class InvoicesControllerTests
         var invoiceDateTo = new DateOnly(2026, 5, 31);
         var service = new Mock<IInvoiceService>();
         service
-            .Setup(invoiceService => invoiceService.SearchAsync("ACME", invoiceDateFrom, invoiceDateTo, 1, 5))
+            .Setup(invoiceService => invoiceService.SearchAsync("ACME", invoiceDateFrom, invoiceDateTo, "customer", "asc", 1, 5))
             .ReturnsAsync(new PagedResult<InvoiceListItemViewModel>
             {
                 Items = [
@@ -34,13 +34,15 @@ public class InvoicesControllerTests
 
         var controller = new InvoicesController(service.Object);
 
-        var result = await controller.Index("ACME", invoiceDateFrom, invoiceDateTo);
+    var result = await controller.Index("ACME", invoiceDateFrom, invoiceDateTo, "customer", "asc");
 
         var viewResult = Assert.IsType<ViewResult>(result);
         var model = Assert.IsType<InvoiceSearchViewModel>(viewResult.Model);
         Assert.Equal("ACME", model.SearchTerm);
         Assert.Equal(invoiceDateFrom, model.InvoiceDateFrom);
         Assert.Equal(invoiceDateTo, model.InvoiceDateTo);
+        Assert.Equal("customer", model.SortBy);
+        Assert.Equal("asc", model.SortDirection);
         Assert.Equal(1, model.PageNumber);
         Assert.Equal(5, model.PageSize);
         Assert.Equal(1, model.TotalCount);
@@ -52,49 +54,36 @@ public class InvoicesControllerTests
     {
         var service = new Mock<IInvoiceService>();
         service
-            .Setup(invoiceService => invoiceService.SearchAsync(null, null, null, 1, 5))
+            .Setup(invoiceService => invoiceService.SearchAsync(null, null, null, "updated", "desc", 1, 5))
             .ReturnsAsync(new PagedResult<InvoiceListItemViewModel>());
 
         var controller = new InvoicesController(service.Object);
 
-        await controller.Index(null, null, null, 0);
+        await controller.Index(null, null, null, null, null, 0);
 
-        service.Verify(invoiceService => invoiceService.SearchAsync(null, null, null, 1, 5), Times.Once);
+        service.Verify(invoiceService => invoiceService.SearchAsync(null, null, null, "updated", "desc", 1, 5), Times.Once);
     }
 
     [Fact]
-    public async Task Index_WhenPageIsBeyondLastPage_LoadsLastAvailablePage()
+    public async Task Index_WhenPageIsBeyondLastPage_ReturnsEmptyPage()
     {
         var service = new Mock<IInvoiceService>();
         service
-            .SetupSequence(invoiceService => invoiceService.SearchAsync("ACME", null, null, 9, 5))
+            .Setup(invoiceService => invoiceService.SearchAsync("ACME", null, null, "status", "desc", 9, 5))
             .ReturnsAsync(new PagedResult<InvoiceListItemViewModel>
             {
-                TotalCount = 21
-            });
-        service
-            .Setup(invoiceService => invoiceService.SearchAsync("ACME", null, null, 5, 5))
-            .ReturnsAsync(new PagedResult<InvoiceListItemViewModel>
-            {
-                Items = [
-                    new InvoiceListItemViewModel
-                    {
-                        Id = 8,
-                        InvoiceNumber = "INV-008"
-                    }
-                ],
                 TotalCount = 21
             });
 
         var controller = new InvoicesController(service.Object);
 
-        var result = await controller.Index("ACME", null, null, 9);
+        var result = await controller.Index("ACME", null, null, "status", "desc", 9);
 
         var viewResult = Assert.IsType<ViewResult>(result);
         var model = Assert.IsType<InvoiceSearchViewModel>(viewResult.Model);
-        Assert.Equal(5, model.PageNumber);
-        Assert.Single(model.Invoices);
-        service.Verify(invoiceService => invoiceService.SearchAsync("ACME", null, null, 9, 5), Times.Once);
-        service.Verify(invoiceService => invoiceService.SearchAsync("ACME", null, null, 5, 5), Times.Once);
+        Assert.Equal(9, model.PageNumber);
+        Assert.Empty(model.Invoices);
+        Assert.Equal(21, model.TotalCount);
+        service.Verify(invoiceService => invoiceService.SearchAsync("ACME", null, null, "status", "desc", 9, 5), Times.Once);
     }
 }

@@ -13,9 +13,23 @@ public class InvoiceService : IInvoiceService
         _repository = repository;
     }
 
-    public async Task<PagedResult<InvoiceListItemViewModel>> SearchAsync(string? searchTerm, DateOnly? invoiceDateFrom, DateOnly? invoiceDateTo, int pageNumber, int pageSize)
+    public async Task<PagedResult<InvoiceListItemViewModel>> SearchAsync(
+        string? searchTerm,
+        DateOnly? invoiceDateFrom,
+        DateOnly? invoiceDateTo,
+        string? sortBy,
+        string? sortDirection,
+        int pageNumber,
+        int pageSize)
     {
-        var searchResult = await _repository.SearchAsync(searchTerm, invoiceDateFrom, invoiceDateTo, pageNumber, pageSize);
+        var searchResult = await _repository.SearchAsync(
+            searchTerm,
+            invoiceDateFrom,
+            invoiceDateTo,
+            sortBy,
+            sortDirection,
+            pageNumber,
+            pageSize);
         return new PagedResult<InvoiceListItemViewModel>
         {
             Items = searchResult.Items.Select(ToListItem).ToList(),

@@ -5,5 +5,12 @@ namespace DocumentTracker.Services;
 
 public interface IInvoiceService
 {
-    Task<PagedResult<InvoiceListItemViewModel>> SearchAsync(string? searchTerm, DateOnly? invoiceDateFrom, DateOnly? invoiceDateTo, int pageNumber, int pageSize);
+    Task<PagedResult<InvoiceListItemViewModel>> SearchAsync(
+        string? searchTerm,
+        DateOnly? invoiceDateFrom,
+        DateOnly? invoiceDateTo,
+        string? sortBy,
+        string? sortDirection,
+        int pageNumber,
+        int pageSize);
 }

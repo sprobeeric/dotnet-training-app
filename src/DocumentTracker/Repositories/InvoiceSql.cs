@@ -36,10 +36,10 @@ public static class InvoiceSql
         {SearchFilters};
         """;
 
-    public const string SearchInvoicesPage = $"""
+    public static string SearchInvoicesPage(string orderByClause) => $"""
         SELECT {SelectColumns}
         {SearchFilters}
-        ORDER BY COALESCE(updated_at_utc, created_at_utc) DESC, id DESC
+        ORDER BY {orderByClause}
         LIMIT @PageSize OFFSET @Offset;
         """;
 }
