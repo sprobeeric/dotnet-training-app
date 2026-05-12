@@ -6,13 +6,6 @@
 
 <h1 class="h3 mb-3">Create Invoice</h1>
 
-@if (TempData["SuccessMessage"] is string successMessage)
-{
-    <div class="alert alert-success">
-        @successMessage
-    </div>
-}
-
 <form asp-action="Create" method="post" class="document-form">
     @Html.AntiForgeryToken()
     <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
