@@ -58,21 +58,34 @@ document.addEventListener("DOMContentLoaded", () => {
 
         if (summaryLinesTarget && summaryEmptyTarget) {
             if (selectedProducts.length === 0) {
-                summaryLinesTarget.innerHTML = "";
+                summaryLinesTarget.replaceChildren();
                 summaryEmptyTarget.hidden = false;
             } else {
                 summaryEmptyTarget.hidden = true;
-                summaryLinesTarget.innerHTML = selectedProducts
-                    .map((product) => `
-                        <div class="purchase-summary-line">
-                            <div>
-                                <p class="purchase-summary-line__name">${product.name}</p>
-                                <p class="purchase-summary-line__meta">${product.quantity} x ${product.unitPrice.toFixed(2)}</p>
-                            </div>
-                            <div class="purchase-summary-line__total">${product.lineTotal.toFixed(2)}</div>
-                        </div>
-                    `)
-                    .join("");
+                summaryLinesTarget.replaceChildren(
+                    ...selectedProducts.map((product) => {
+                        const line = document.createElement("div");
+                        line.className = "purchase-summary-line";
+
+                        const details = document.createElement("div");
+
+                        const name = document.createElement("p");
+                        name.className = "purchase-summary-line__name";
+                        name.textContent = product.name;
+
+                        const meta = document.createElement("p");
+                        meta.className = "purchase-summary-line__meta";
+                        meta.textContent = `${product.quantity} x ${product.unitPrice.toFixed(2)}`;
+
+                        const total = document.createElement("div");
+                        total.className = "purchase-summary-line__total";
+                        total.textContent = product.lineTotal.toFixed(2);
+
+                        details.append(name, meta);
+                        line.append(details, total);
+                        return line;
+                    })
+                );
             }
         }
     };
