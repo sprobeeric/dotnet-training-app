@@ -34,3 +34,5 @@ public static class PaymentReceiptSql
         ORDER BY p.name ASC;
         """;
 }
+
+
