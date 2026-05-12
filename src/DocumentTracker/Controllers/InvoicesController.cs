@@ -6,6 +6,7 @@ namespace DocumentTracker.Controllers;
 
 public class InvoicesController : Controller
 {
+    private const int PageSize = 5;
     private readonly IInvoiceService _invoiceService;
 
     public InvoicesController(IInvoiceService invoiceService)
@@ -13,15 +14,26 @@ public class InvoicesController : Controller
         _invoiceService = invoiceService;
     }
 
-    public async Task<IActionResult> Index(string? searchTerm, DateOnly? invoiceDateFrom, DateOnly? invoiceDateTo)
+    public async Task<IActionResult> Index(string? searchTerm, DateOnly? invoiceDateFrom, DateOnly? invoiceDateTo, int page = 1)
     {
-        var invoices = await _invoiceService.SearchAsync(searchTerm, invoiceDateFrom, invoiceDateTo);
+        var currentPage = page < 1 ? 1 : page;
+        var searchResult = await _invoiceService.SearchAsync(searchTerm, invoiceDateFrom, invoiceDateTo, currentPage, PageSize);
+
+        if (currentPage > 1 && searchResult.TotalCount > 0 && searchResult.Items.Count == 0)
+        {
+            currentPage = (int)Math.Ceiling(searchResult.TotalCount / (double)PageSize);
+            searchResult = await _invoiceService.SearchAsync(searchTerm, invoiceDateFrom, invoiceDateTo, currentPage, PageSize);
+        }
+
         return View(new InvoiceSearchViewModel
         {
             SearchTerm = searchTerm,
             InvoiceDateFrom = invoiceDateFrom,
             InvoiceDateTo = invoiceDateTo,
-            Invoices = invoices
+            PageNumber = currentPage,
+            PageSize = PageSize,
+            TotalCount = searchResult.TotalCount,
+            Invoices = searchResult.Items
         });
     }
 }

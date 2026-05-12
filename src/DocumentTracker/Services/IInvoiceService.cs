@@ -1,8 +1,9 @@
+using DocumentTracker.Models;
 using DocumentTracker.ViewModels;
 
 namespace DocumentTracker.Services;
 
 public interface IInvoiceService
 {
-    Task<IReadOnlyList<InvoiceListItemViewModel>> SearchAsync(string? searchTerm, DateOnly? invoiceDateFrom, DateOnly? invoiceDateTo);
+    Task<PagedResult<InvoiceListItemViewModel>> SearchAsync(string? searchTerm, DateOnly? invoiceDateFrom, DateOnly? invoiceDateTo, int pageNumber, int pageSize);
 }

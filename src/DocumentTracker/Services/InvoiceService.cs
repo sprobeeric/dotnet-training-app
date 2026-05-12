@@ -13,10 +13,14 @@ public class InvoiceService : IInvoiceService
         _repository = repository;
     }
 
-    public async Task<IReadOnlyList<InvoiceListItemViewModel>> SearchAsync(string? searchTerm, DateOnly? invoiceDateFrom, DateOnly? invoiceDateTo)
+    public async Task<PagedResult<InvoiceListItemViewModel>> SearchAsync(string? searchTerm, DateOnly? invoiceDateFrom, DateOnly? invoiceDateTo, int pageNumber, int pageSize)
     {
-        var invoices = await _repository.SearchAsync(searchTerm, invoiceDateFrom, invoiceDateTo);
-        return invoices.Select(ToListItem).ToList();
+        var searchResult = await _repository.SearchAsync(searchTerm, invoiceDateFrom, invoiceDateTo, pageNumber, pageSize);
+        return new PagedResult<InvoiceListItemViewModel>
+        {
+            Items = searchResult.Items.Select(ToListItem).ToList(),
+            TotalCount = searchResult.TotalCount
+        };
     }
 
     private static InvoiceListItemViewModel ToListItem(Invoice invoice) => new()

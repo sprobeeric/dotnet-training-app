@@ -2,6 +2,9 @@
 
 @{
     ViewData["Title"] = "Invoices";
+    var firstPage = Math.Max(1, Model.PageNumber - 2);
+    var lastPage = Math.Min(Model.TotalPages, firstPage + 4);
+    firstPage = Math.Max(1, lastPage - 4);
 }
 
 <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
@@ -73,5 +76,67 @@ else
             }
             </tbody>
         </table>
+    </div>
+
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mt-3">
+        <p class="text-body-secondary mb-0">
+            Showing @Model.FirstItemIndex-@Model.LastItemIndex of @Model.TotalCount invoices
+        </p>
+
+        @if (Model.TotalPages > 1)
+        {
+            <nav aria-label="Invoice pagination" class="d-flex justify-content-end">
+                <ul class="pagination pagination-sm mb-0">
+                    <li class="page-item @(Model.HasPreviousPage ? string.Empty : "disabled")">
+                        @if (Model.HasPreviousPage)
+                        {
+                            <a class="page-link"
+                               asp-action="Index"
+                               asp-route-searchTerm="@Model.SearchTerm"
+                               asp-route-invoiceDateFrom="@Model.InvoiceDateFrom?.ToString("yyyy-MM-dd")"
+                               asp-route-invoiceDateTo="@Model.InvoiceDateTo?.ToString("yyyy-MM-dd")"
+                               asp-route-page="@(Model.PageNumber - 1)">Previous</a>
+                        }
+                        else
+                        {
+                            <span class="page-link">Previous</span>
+                        }
+                    </li>
+                    @for (var pageNumber = firstPage; pageNumber <= lastPage; pageNumber++)
+                    {
+                        <li class="page-item @(pageNumber == Model.PageNumber ? "active" : string.Empty)">
+                            @if (pageNumber == Model.PageNumber)
+                            {
+                                <span class="page-link">@pageNumber</span>
+                            }
+                            else
+                            {
+                                <a class="page-link"
+                                   asp-action="Index"
+                                   asp-route-searchTerm="@Model.SearchTerm"
+                                   asp-route-invoiceDateFrom="@Model.InvoiceDateFrom?.ToString("yyyy-MM-dd")"
+                                   asp-route-invoiceDateTo="@Model.InvoiceDateTo?.ToString("yyyy-MM-dd")"
+                                   asp-route-page="@pageNumber">@pageNumber</a>
+                            }
+                        </li>
+                    }
+                    <li class="page-item @(Model.HasNextPage ? string.Empty : "disabled")">
+                        @if (Model.HasNextPage)
+                        {
+                            <a class="page-link"
+                               asp-action="Index"
+                               asp-route-searchTerm="@Model.SearchTerm"
+                               asp-route-invoiceDateFrom="@Model.InvoiceDateFrom?.ToString("yyyy-MM-dd")"
+                               asp-route-invoiceDateTo="@Model.InvoiceDateTo?.ToString("yyyy-MM-dd")"
+                               asp-route-page="@(Model.PageNumber + 1)">Next</a>
+                        }
+                        else
+                        {
+                            <span class="page-link">Next</span>
+                        }
+                    </li>
+                </ul>
+            </nav>
+        }
     </div>
 }

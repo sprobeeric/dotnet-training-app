@@ -18,8 +18,7 @@ public static class InvoiceSql
         deleted_at_utc AS DeletedAtUtc
         """;
 
-    public const string SearchInvoices = $"""
-        SELECT {SelectColumns}
+    private const string SearchFilters = """
         FROM invoices
         WHERE deleted_at_utc IS NULL
             AND (
@@ -30,6 +29,17 @@ public static class InvoiceSql
             )
             AND (@InvoiceDateFrom IS NULL OR invoice_date >= @InvoiceDateFrom)
             AND (@InvoiceDateTo IS NULL OR invoice_date <= @InvoiceDateTo)
-        ORDER BY COALESCE(updated_at_utc, created_at_utc) DESC, id DESC;
+        """;
+
+    public const string CountInvoices = $"""
+        SELECT COUNT(*)
+        {SearchFilters};
+        """;
+
+    public const string SearchInvoicesPage = $"""
+        SELECT {SelectColumns}
+        {SearchFilters}
+        ORDER BY COALESCE(updated_at_utc, created_at_utc) DESC, id DESC
+        LIMIT @PageSize OFFSET @Offset;
         """;
 }

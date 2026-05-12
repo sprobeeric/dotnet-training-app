@@ -76,13 +76,16 @@ public class InvoiceRepositoryIntegrationTests
 
         var repository = new InvoiceRepository(dataSource, new Mock<ILogger<InvoiceRepository>>().Object);
 
-        var invoices = await repository.SearchAsync(
+        var result = await repository.SearchAsync(
             "Integration Customer",
             new DateOnly(2026, 5, 1),
-            new DateOnly(2026, 5, 31));
+            new DateOnly(2026, 5, 31),
+            1,
+            10);
 
-        Assert.Contains(invoices, invoice => invoice.CustomerName == "Integration Customer" && invoice.TotalAmount == 112m);
-        Assert.DoesNotContain(invoices, invoice => invoice.CustomerName == "Integration Customer" && invoice.TotalAmount == 224m);
+        Assert.Equal(1, result.TotalCount);
+        Assert.Contains(result.Items, invoice => invoice.CustomerName == "Integration Customer" && invoice.TotalAmount == 112m);
+        Assert.DoesNotContain(result.Items, invoice => invoice.CustomerName == "Integration Customer" && invoice.TotalAmount == 224m);
     }
 
     private static string FindRepositoryRoot()
