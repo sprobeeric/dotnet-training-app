@@ -11,7 +11,9 @@ namespace DocumentTracker.Tests.Services;
 public class PaymentReceiptServiceTests
 {
     private readonly Mock<IPaymentReceiptRepository> _paymentReceiptRepository = new();
+    private readonly Mock<IPaymentReceiptNumberGenerator> _numberGenerator = new();
     private readonly Mock<IProductRepository> _productRepository = new();
+    private readonly PaymentReceiptValidator _validator = new();
     private readonly Mock<ILogger<PaymentReceiptService>> _logger = new();
 
     [Fact]
@@ -20,13 +22,13 @@ public class PaymentReceiptServiceTests
         var service = CreateService();
         var viewModel = ValidCreateViewModel();
 
-        _paymentReceiptRepository
-            .Setup(repository => repository.GetNextReceiptSequenceAsync(It.IsAny<DateOnly>()))
-            .ReturnsAsync(1);
-
         _productRepository
             .Setup(repository => repository.ListActiveAsync())
             .ReturnsAsync(ActiveProducts());
+
+        _numberGenerator
+            .Setup(generator => generator.GenerateAsync())
+            .ReturnsAsync(("RCP-20260512-000001", "REF-20260512-000001-ABC123", DateTime.SpecifyKind(new DateTime(2026, 5, 12, 10, 0, 0), DateTimeKind.Utc)));
 
         _paymentReceiptRepository
             .Setup(repository => repository.CreateAsync(It.IsAny<PaymentReceipt>(), It.IsAny<IReadOnlyList<PaymentReceiptProduct>>()))
@@ -73,14 +75,14 @@ public class PaymentReceiptServiceTests
         var service = CreateService();
         var viewModel = ValidCreateViewModel();
 
-        _paymentReceiptRepository
-            .SetupSequence(repository => repository.GetNextReceiptSequenceAsync(It.IsAny<DateOnly>()))
-            .ReturnsAsync(1)
-            .ReturnsAsync(2);
-
         _productRepository
             .Setup(repository => repository.ListActiveAsync())
             .ReturnsAsync(ActiveProducts());
+
+        _numberGenerator
+            .SetupSequence(generator => generator.GenerateAsync())
+            .ReturnsAsync(("RCP-20260512-000001", "REF-20260512-000001-ABC123", DateTime.SpecifyKind(new DateTime(2026, 5, 12, 10, 0, 0), DateTimeKind.Utc)))
+            .ReturnsAsync(("RCP-20260512-000002", "REF-20260512-000002-XYZ789", DateTime.SpecifyKind(new DateTime(2026, 5, 12, 10, 0, 1), DateTimeKind.Utc)));
 
         _paymentReceiptRepository
             .SetupSequence(repository => repository.CreateAsync(It.IsAny<PaymentReceipt>(), It.IsAny<IReadOnlyList<PaymentReceiptProduct>>()))
@@ -94,7 +96,12 @@ public class PaymentReceiptServiceTests
         _paymentReceiptRepository.Verify(repository => repository.CreateAsync(It.IsAny<PaymentReceipt>(), It.IsAny<IReadOnlyList<PaymentReceiptProduct>>()), Times.Exactly(2));
     }
 
-    private PaymentReceiptService CreateService() => new(_paymentReceiptRepository.Object, _productRepository.Object, _logger.Object);
+    private PaymentReceiptService CreateService() => new(
+        _paymentReceiptRepository.Object,
+        _numberGenerator.Object,
+        _productRepository.Object,
+        _validator,
+        _logger.Object);
 
     private static PaymentReceiptCreateViewModel ValidCreateViewModel() => new()
     {

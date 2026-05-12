@@ -1,4 +1,3 @@
-using System.ComponentModel.DataAnnotations;
 using DocumentTracker.Models;
 using DocumentTracker.Repositories;
 using DocumentTracker.ViewModels;
@@ -11,16 +10,22 @@ public class PaymentReceiptService : IPaymentReceiptService
     private const int MaxCreateAttempts = 3;
 
     private readonly IPaymentReceiptRepository _paymentReceiptRepository;
+    private readonly IPaymentReceiptNumberGenerator _numberGenerator;
     private readonly IProductRepository _productRepository;
+    private readonly IPaymentReceiptValidator _validator;
     private readonly ILogger<PaymentReceiptService> _logger;
 
     public PaymentReceiptService(
         IPaymentReceiptRepository paymentReceiptRepository,
+        IPaymentReceiptNumberGenerator numberGenerator,
         IProductRepository productRepository,
+        IPaymentReceiptValidator validator,
         ILogger<PaymentReceiptService> logger)
     {
         _paymentReceiptRepository = paymentReceiptRepository;
+        _numberGenerator = numberGenerator;
         _productRepository = productRepository;
+        _validator = validator;
         _logger = logger;
     }
 
@@ -36,12 +41,6 @@ public class PaymentReceiptService : IPaymentReceiptService
     {
         await HydrateProductsAsync(viewModel);
 
-        var validationResult = Validate(viewModel);
-        if (!validationResult.Succeeded)
-        {
-            return validationResult;
-        }
-
         var selectedProducts = viewModel.Products
             .Where(product => product.Quantity > 0)
             .Select(product => new PaymentReceiptProduct
@@ -53,35 +52,28 @@ public class PaymentReceiptService : IPaymentReceiptService
             })
             .ToList();
 
-        if (selectedProducts.Count == 0)
+        var validationResult = _validator.ValidateCreate(viewModel, selectedProducts);
+        if (!validationResult.Succeeded)
         {
-            return ServiceResult<int>.Failure(string.Empty, "Select at least one coffee product.");
+            return validationResult;
         }
 
         var totalAmount = selectedProducts.Sum(product => product.LineTotal);
-        if (viewModel.Received < totalAmount)
-        {
-            return ServiceResult<int>.Failure(nameof(viewModel.Received), "Amount received must be greater than or equal to the total amount.");
-        }
 
         for (var attempt = 1; attempt <= MaxCreateAttempts; attempt++)
         {
-            var now = DateTime.UtcNow;
-            var paymentDate = DateOnly.FromDateTime(now);
-            var nextSequence = await _paymentReceiptRepository.GetNextReceiptSequenceAsync(paymentDate);
-            var receiptNumber = $"RCP-{paymentDate:yyyyMMdd}-{nextSequence:D6}";
-            var referenceNumber = BuildReferenceNumber(paymentDate, nextSequence);
+            var generatedNumbers = await _numberGenerator.GenerateAsync();
 
             var paymentReceipt = new PaymentReceipt
             {
-                ReceiptNumber = receiptNumber,
-                PaymentDateUtc = now,
-                ReferenceNumber = referenceNumber,
+                ReceiptNumber = generatedNumbers.ReceiptNumber,
+                PaymentDateUtc = generatedNumbers.PaymentDateUtc,
+                ReferenceNumber = generatedNumbers.ReferenceNumber,
                 TotalAmount = totalAmount,
                 Received = viewModel.Received,
                 ChangeAmount = viewModel.Received - totalAmount,
-                CreatedAtUtc = now,
-                UpdatedAtUtc = now
+                CreatedAtUtc = generatedNumbers.PaymentDateUtc,
+                UpdatedAtUtc = generatedNumbers.PaymentDateUtc
             };
 
             try
@@ -101,23 +93,6 @@ public class PaymentReceiptService : IPaymentReceiptService
         }
 
         return ServiceResult<int>.Failure(string.Empty, "The payment receipt could not be created. Please submit the purchase again.");
-    }
-
-    private static ServiceResult<int> Validate(PaymentReceiptCreateViewModel viewModel)
-    {
-        var result = new ServiceResult<int>();
-        var validationResults = new List<ValidationResult>();
-        var context = new ValidationContext(viewModel);
-
-        Validator.TryValidateObject(viewModel, context, validationResults, validateAllProperties: true);
-
-        foreach (var validationResult in validationResults)
-        {
-            var key = validationResult.MemberNames.FirstOrDefault() ?? string.Empty;
-            result.AddError(key, validationResult.ErrorMessage ?? "The value is invalid.");
-        }
-
-        return result;
     }
 
     private async Task<List<PaymentReceiptProductInputViewModel>> BuildProductInputsAsync()
@@ -144,11 +119,5 @@ public class PaymentReceiptService : IPaymentReceiptService
             UnitPrice = product.UnitPrice,
             Quantity = submittedQuantities.TryGetValue(product.Id, out var quantity) ? quantity : 0
         }).ToList();
-    }
-
-    private static string BuildReferenceNumber(DateOnly paymentDate, int sequence)
-    {
-        var suffix = Guid.NewGuid().ToString("N")[..6].ToUpperInvariant();
-        return $"REF-{paymentDate:yyyyMMdd}-{sequence:D6}-{suffix}";
     }
 }
