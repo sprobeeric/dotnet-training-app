@@ -33,17 +33,33 @@ public class PaymentReceiptValidator : IPaymentReceiptValidator
     private static ServiceResult<int> ValidateAnnotations(PaymentReceiptCreateViewModel viewModel)
     {
         var result = new ServiceResult<int>();
-        var validationResults = new List<ValidationResult>();
-        var context = new ValidationContext(viewModel);
+        AddValidationErrors(result, viewModel, prefix: string.Empty);
 
-        Validator.TryValidateObject(viewModel, context, validationResults, validateAllProperties: true);
-
-        foreach (var validationResult in validationResults)
+        for (var index = 0; index < viewModel.Products.Count; index++)
         {
-            var key = validationResult.MemberNames.FirstOrDefault() ?? string.Empty;
-            result.AddError(key, validationResult.ErrorMessage ?? "The value is invalid.");
+            AddValidationErrors(result, viewModel.Products[index], $"Products[{index}]");
         }
 
         return result;
+    }
+
+    private static void AddValidationErrors(ServiceResult<int> result, object instance, string prefix)
+    {
+        var validationResults = new List<ValidationResult>();
+        var context = new ValidationContext(instance);
+
+        Validator.TryValidateObject(instance, context, validationResults, validateAllProperties: true);
+
+        foreach (var validationResult in validationResults)
+        {
+            var memberName = validationResult.MemberNames.FirstOrDefault() ?? string.Empty;
+            var key = string.IsNullOrEmpty(prefix)
+                ? memberName
+                : string.IsNullOrEmpty(memberName)
+                    ? prefix
+                    : $"{prefix}.{memberName}";
+
+            result.AddError(key, validationResult.ErrorMessage ?? "The value is invalid.");
+        }
     }
 }

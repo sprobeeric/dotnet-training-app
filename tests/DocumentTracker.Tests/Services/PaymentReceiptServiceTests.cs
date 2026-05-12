@@ -70,6 +70,42 @@ public class PaymentReceiptServiceTests
     }
 
     [Fact]
+    public async Task CreateAsync_WithQuantityBelowZero_ReturnsValidationError()
+    {
+        var service = CreateService();
+        var viewModel = ValidCreateViewModel();
+        viewModel.Products[0].Quantity = -1;
+
+        _productRepository
+            .Setup(repository => repository.ListActiveAsync())
+            .ReturnsAsync(ActiveProducts());
+
+        var result = await service.CreateAsync(viewModel);
+
+        Assert.False(result.Succeeded);
+        Assert.Contains(result.Errors, error => error.Key == "Products[0].Quantity");
+        _paymentReceiptRepository.Verify(repository => repository.CreateAsync(It.IsAny<PaymentReceipt>(), It.IsAny<IReadOnlyList<PaymentReceiptProduct>>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task CreateAsync_WithQuantityAboveMaximum_ReturnsValidationError()
+    {
+        var service = CreateService();
+        var viewModel = ValidCreateViewModel();
+        viewModel.Products[0].Quantity = 1000;
+
+        _productRepository
+            .Setup(repository => repository.ListActiveAsync())
+            .ReturnsAsync(ActiveProducts());
+
+        var result = await service.CreateAsync(viewModel);
+
+        Assert.False(result.Succeeded);
+        Assert.Contains(result.Errors, error => error.Key == "Products[0].Quantity");
+        _paymentReceiptRepository.Verify(repository => repository.CreateAsync(It.IsAny<PaymentReceipt>(), It.IsAny<IReadOnlyList<PaymentReceiptProduct>>()), Times.Never);
+    }
+
+    [Fact]
     public async Task CreateAsync_WhenReceiptSequenceCollides_RetriesAndSucceeds()
     {
         var service = CreateService();
