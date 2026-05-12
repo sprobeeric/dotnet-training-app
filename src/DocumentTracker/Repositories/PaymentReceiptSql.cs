@@ -5,8 +5,7 @@ public static class PaymentReceiptSql
     public const string GetNextReceiptSequence = """
         SELECT COALESCE(MAX(CAST(RIGHT(receipt_number, 6) AS integer)), 0) + 1
         FROM payment_receipts
-        WHERE receipt_number LIKE @ReceiptPrefix || '-%'
-          AND deleted_at_utc IS NULL;
+        WHERE receipt_number LIKE @ReceiptPrefix || '-%';
         """;
 
     public const string InsertPaymentReceipt = """
