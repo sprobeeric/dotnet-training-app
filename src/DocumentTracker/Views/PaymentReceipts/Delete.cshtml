@@ -1,0 +1,39 @@
+@model PaymentReceiptDeleteViewModel
+
+@{
+    ViewData["Title"] = "Delete Payment Receipt";
+}
+
+<h1 class="h3 mb-3">Delete Payment Receipt</h1>
+
+<div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+
+<div class="alert alert-warning">
+    Confirm that this payment receipt should be soft deleted. The row will remain in the database with DeletedAtUtc set.
+</div>
+
+<dl class="row">
+    <dt class="col-sm-3">Receipt Number</dt>
+    <dd class="col-sm-9">@Model.ReceiptNumber</dd>
+
+    <dt class="col-sm-3">Payment Date UTC</dt>
+    <dd class="col-sm-9">@Model.PaymentDateUtc.ToString("u")</dd>
+
+    <dt class="col-sm-3">Reference Number</dt>
+    <dd class="col-sm-9">@Model.ReferenceNumber</dd>
+
+    <dt class="col-sm-3">Total Amount</dt>
+    <dd class="col-sm-9">@Model.TotalAmount.ToString("N2")</dd>
+
+    <dt class="col-sm-3">Received</dt>
+    <dd class="col-sm-9">@Model.Received.ToString("N2")</dd>
+
+    <dt class="col-sm-3">Change</dt>
+    <dd class="col-sm-9">@Model.ChangeAmount.ToString("N2")</dd>
+</dl>
+
+<form asp-action="Delete" asp-route-id="@Model.Id" method="post">
+    @Html.AntiForgeryToken()
+    <button type="submit" class="btn btn-danger">Delete</button>
+    <a asp-controller="Documents" asp-action="Index" class="btn btn-outline-secondary">Cancel</a>
+</form>
