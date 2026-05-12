@@ -8,6 +8,8 @@ namespace DocumentTracker.Services;
 
 public class PaymentReceiptService : IPaymentReceiptService
 {
+    private const int MaxCreateAttempts = 3;
+
     private readonly IPaymentReceiptRepository _paymentReceiptRepository;
     private readonly IProductRepository _productRepository;
     private readonly ILogger<PaymentReceiptService> _logger;
@@ -53,7 +55,7 @@ public class PaymentReceiptService : IPaymentReceiptService
 
         if (selectedProducts.Count == 0)
         {
-            return ServiceResult<int>.Failure(nameof(viewModel.Products), "Select at least one coffee product.");
+            return ServiceResult<int>.Failure(string.Empty, "Select at least one coffee product.");
         }
 
         var totalAmount = selectedProducts.Sum(product => product.LineTotal);
@@ -62,34 +64,43 @@ public class PaymentReceiptService : IPaymentReceiptService
             return ServiceResult<int>.Failure(nameof(viewModel.Received), "Amount received must be greater than or equal to the total amount.");
         }
 
-        var now = DateTime.UtcNow;
-        var paymentDate = DateOnly.FromDateTime(now);
-        var nextSequence = await _paymentReceiptRepository.GetNextReceiptSequenceAsync(paymentDate);
-        var receiptNumber = $"RCP-{paymentDate:yyyyMMdd}-{nextSequence:D6}";
-        var referenceNumber = BuildReferenceNumber(paymentDate, nextSequence);
+        for (var attempt = 1; attempt <= MaxCreateAttempts; attempt++)
+        {
+            var now = DateTime.UtcNow;
+            var paymentDate = DateOnly.FromDateTime(now);
+            var nextSequence = await _paymentReceiptRepository.GetNextReceiptSequenceAsync(paymentDate);
+            var receiptNumber = $"RCP-{paymentDate:yyyyMMdd}-{nextSequence:D6}";
+            var referenceNumber = BuildReferenceNumber(paymentDate, nextSequence);
 
-        var paymentReceipt = new PaymentReceipt
-        {
-            ReceiptNumber = receiptNumber,
-            PaymentDateUtc = now,
-            ReferenceNumber = referenceNumber,
-            TotalAmount = totalAmount,
-            Received = viewModel.Received,
-            ChangeAmount = viewModel.Received - totalAmount,
-            CreatedAtUtc = now,
-            UpdatedAtUtc = now
-        };
+            var paymentReceipt = new PaymentReceipt
+            {
+                ReceiptNumber = receiptNumber,
+                PaymentDateUtc = now,
+                ReferenceNumber = referenceNumber,
+                TotalAmount = totalAmount,
+                Received = viewModel.Received,
+                ChangeAmount = viewModel.Received - totalAmount,
+                CreatedAtUtc = now,
+                UpdatedAtUtc = now
+            };
 
-        try
-        {
-            var id = await _paymentReceiptRepository.CreateAsync(paymentReceipt, selectedProducts);
-            return ServiceResult<int>.Success(id);
+            try
+            {
+                var id = await _paymentReceiptRepository.CreateAsync(paymentReceipt, selectedProducts);
+                return ServiceResult<int>.Success(id);
+            }
+            catch (PostgresException ex) when (ex.SqlState == PostgresErrorCodes.UniqueViolation && attempt < MaxCreateAttempts)
+            {
+                _logger.LogWarning(ex, "Payment receipt create hit a unique-value collision on attempt {Attempt}. Retrying.", attempt);
+            }
+            catch (PostgresException ex) when (ex.SqlState == PostgresErrorCodes.UniqueViolation)
+            {
+                _logger.LogWarning(ex, "Payment receipt create failed after {AttemptCount} attempts because receipt numbering kept colliding.", attempt);
+                return ServiceResult<int>.Failure(string.Empty, "The payment receipt could not be created. Please submit the purchase again.");
+            }
         }
-        catch (PostgresException ex) when (ex.SqlState == PostgresErrorCodes.UniqueViolation)
-        {
-            _logger.LogWarning(ex, "Payment receipt create failed because receipt numbering collided.");
-            return ServiceResult<int>.Failure(string.Empty, "The payment receipt could not be created. Please submit the purchase again.");
-        }
+
+        return ServiceResult<int>.Failure(string.Empty, "The payment receipt could not be created. Please submit the purchase again.");
     }
 
     private static ServiceResult<int> Validate(PaymentReceiptCreateViewModel viewModel)

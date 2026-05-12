@@ -4,6 +4,7 @@ using DocumentTracker.Services;
 using DocumentTracker.ViewModels;
 using Microsoft.Extensions.Logging;
 using Moq;
+using Npgsql;
 
 namespace DocumentTracker.Tests.Services;
 
@@ -62,8 +63,35 @@ public class PaymentReceiptServiceTests
         var result = await service.CreateAsync(viewModel);
 
         Assert.False(result.Succeeded);
-        Assert.Contains(result.Errors, error => error.Key == nameof(PaymentReceiptCreateViewModel.Products));
+        Assert.Contains(result.Errors, error => error.Key == string.Empty);
         _paymentReceiptRepository.Verify(repository => repository.CreateAsync(It.IsAny<PaymentReceipt>(), It.IsAny<IReadOnlyList<PaymentReceiptProduct>>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task CreateAsync_WhenReceiptSequenceCollides_RetriesAndSucceeds()
+    {
+        var service = CreateService();
+        var viewModel = ValidCreateViewModel();
+
+        _paymentReceiptRepository
+            .SetupSequence(repository => repository.GetNextReceiptSequenceAsync(It.IsAny<DateOnly>()))
+            .ReturnsAsync(1)
+            .ReturnsAsync(2);
+
+        _productRepository
+            .Setup(repository => repository.ListActiveAsync())
+            .ReturnsAsync(ActiveProducts());
+
+        _paymentReceiptRepository
+            .SetupSequence(repository => repository.CreateAsync(It.IsAny<PaymentReceipt>(), It.IsAny<IReadOnlyList<PaymentReceiptProduct>>()))
+            .ThrowsAsync(CreateUniqueViolation())
+            .ReturnsAsync(11);
+
+        var result = await service.CreateAsync(viewModel);
+
+        Assert.True(result.Succeeded);
+        Assert.Equal(11, result.Value);
+        _paymentReceiptRepository.Verify(repository => repository.CreateAsync(It.IsAny<PaymentReceipt>(), It.IsAny<IReadOnlyList<PaymentReceiptProduct>>()), Times.Exactly(2));
     }
 
     private PaymentReceiptService CreateService() => new(_paymentReceiptRepository.Object, _productRepository.Object, _logger.Object);
@@ -83,4 +111,11 @@ public class PaymentReceiptServiceTests
         new Product { Id = 1, Name = "Classic Pearl Milk Tea", UnitPrice = 120m },
         new Product { Id = 2, Name = "Wintermelon Milk Tea", UnitPrice = 110m }
     ];
+
+    private static PostgresException CreateUniqueViolation() =>
+        new(
+            messageText: "duplicate key value violates unique constraint",
+            severity: "ERROR",
+            invariantSeverity: "ERROR",
+            sqlState: PostgresErrorCodes.UniqueViolation);
 }
