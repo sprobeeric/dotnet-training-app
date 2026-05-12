@@ -95,42 +95,6 @@ public class PaymentReceiptService : IPaymentReceiptService
         return ServiceResult<int>.Failure(string.Empty, "The payment receipt could not be created. Please submit the purchase again.");
     }
 
-    public async Task<PaginatedResult<PaymentReceiptListItemViewModel>> SearchAsync(
-        string? searchTerm,
-        DateTime? dateFrom,
-        DateTime? dateTo,
-        string sort,
-        string order,
-        int page,
-        int pageSize)
-    {
-        var paymentReceipts = await _paymentReceiptRepository.SearchAsync(
-            searchTerm,
-            dateFrom,
-            dateTo,
-            sort,
-            order,
-            page,
-            pageSize);
-
-        return new PaginatedResult<PaymentReceiptListItemViewModel>
-        {
-            Items = paymentReceipts.Items
-                .Select(paymentReceipt => new PaymentReceiptListItemViewModel
-                {
-                    Id = paymentReceipt.Id,
-                    ReceiptNumber = paymentReceipt.ReceiptNumber,
-                    ReferenceNumber = paymentReceipt.ReferenceNumber,
-                    PaymentDateUtc = paymentReceipt.PaymentDateUtc,
-                    TotalAmount = paymentReceipt.TotalAmount,
-                    Received = paymentReceipt.Received,
-                    ChangeAmount = paymentReceipt.ChangeAmount
-                })
-                .ToList(),
-            Total = paymentReceipts.Total
-        };
-    }
-
     private async Task<List<PaymentReceiptProductInputViewModel>> BuildProductInputsAsync()
     {
         var products = await _productRepository.ListActiveAsync();
