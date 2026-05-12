@@ -27,7 +27,7 @@
     </div>
     <div class="col-md-3 col-lg-2">
         <label asp-for="DateFrom" class="form-label fw-bold">Date Range:</label>
-        <input asp-for="DateFrom"type="date" class="form-control" />
+        <input asp-for="DateFrom" type="date" class="form-control" />
     </div>
     <div class="col-md-3 col-lg-2">
         <input asp-for="DateTo" type="date" class="form-control" />
@@ -36,7 +36,7 @@
         <button type="submit" class="btn btn-outline-primary">Search</button>
     </div>
     <div class="col-auto">
-        <a asp-action="Index"class="btn btn-outline-secondary">Clear</a>
+        <a asp-action="Index" class="btn btn-outline-secondary">Clear</a>
     </div>
 </form>
 
@@ -60,7 +60,6 @@ else
                            asp-route-sort="receipt_number"
                            asp-route-order="@(Model.Sort == "receipt_number" && Model.Order == "asc" ? "desc" : "asc")"
                            class="text-decoration-none text-dark">
-
                             Receipt Number
                             <span class="ms-1">@SortIcon("receipt_number")</span>
                         </a>
@@ -75,7 +74,6 @@ else
                            asp-route-sort="reference_number"
                            asp-route-order="@(Model.Sort == "reference_number" && Model.Order == "asc" ? "desc" : "asc")"
                            class="text-decoration-none text-dark">
-
                             Reference Number
                             <span class="ms-1">@SortIcon("reference_number")</span>
                         </a>
@@ -90,7 +88,6 @@ else
                            asp-route-sort="payment_date_utc"
                            asp-route-order="@(Model.Sort == "payment_date_utc" && Model.Order == "asc" ? "desc" : "asc")"
                            class="text-decoration-none text-dark">
-
                             Date
                             <span class="ms-1">@SortIcon("payment_date_utc")</span>
                         </a>
@@ -105,7 +102,6 @@ else
                            asp-route-sort="total_amount"
                            asp-route-order="@(Model.Sort == "total_amount" && Model.Order == "asc" ? "desc" : "asc")"
                            class="text-decoration-none text-dark">
-
                             Total
                             <span class="ms-1">@SortIcon("total_amount")</span>
                         </a>
@@ -120,7 +116,6 @@ else
                            asp-route-sort="received"
                            asp-route-order="@(Model.Sort == "received" && Model.Order == "asc" ? "desc" : "asc")"
                            class="text-decoration-none text-dark">
-
                             Received
                             <span class="ms-1">@SortIcon("received")</span>
                         </a>
@@ -135,7 +130,6 @@ else
                            asp-route-sort="change_amount"
                            asp-route-order="@(Model.Sort == "change_amount" && Model.Order == "asc" ? "desc" : "asc")"
                            class="text-decoration-none text-dark">
-
                             Change
                             <span class="ms-1">@SortIcon("change_amount")</span>
                         </a>
@@ -143,7 +137,6 @@ else
                     <th class="text-end">Actions</th>
                 </tr>
             </thead>
-
             <tbody>
             @foreach (var paymentReceipt in Model.PaymentReceipts)
             {

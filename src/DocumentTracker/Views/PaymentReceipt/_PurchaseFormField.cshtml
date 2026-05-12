@@ -1,0 +1,88 @@
+@model PaymentReceiptCreateViewModel
+
+<div class="purchase-layout">
+    <section class="purchase-products">
+        <div class="purchase-panel-header">
+            <div>
+                <h2 class="h5 mb-1">Coffee Products</h2>
+                <p class="text-muted mb-0">Search the menu and enter quantities only for items being purchased.</p>
+            </div>
+            <div class="purchase-stats">
+                <span class="purchase-stat-pill"><span data-selected-items>0</span> items selected</span>
+            </div>
+        </div>
+
+        <div class="purchase-search mb-3">
+            <label class="form-label visually-hidden" for="product-search">Search products</label>
+            <input id="product-search" type="search" class="form-control" placeholder="Search coffee products" data-product-search />
+        </div>
+
+        <div class="product-grid" data-product-grid>
+        @for (var i = 0; i < Model.Products.Count; i++)
+        {
+            <article class="product-card" data-product-card data-product-name="@Model.Products[i].ProductName.ToLowerInvariant()">
+                <div class="product-card__content">
+                    <div>
+                        <h3 class="product-card__name">@Model.Products[i].ProductName</h3>
+                        <p class="product-card__price mb-0">@Model.Products[i].UnitPrice.ToString("0.00")</p>
+                    </div>
+                    <div class="product-card__qty">
+                        <label asp-for="Products[i].Quantity" class="form-label small text-muted mb-1">Qty</label>
+                        <input asp-for="Products[i].Quantity"
+                               class="form-control"
+                               min="0"
+                               data-quantity-input
+                               data-unit-price="@Model.Products[i].UnitPrice" />
+                        <span asp-validation-for="Products[i].Quantity" class="text-danger small"></span>
+                    </div>
+                </div>
+                <input asp-for="Products[i].ProductId" type="hidden" />
+                <input asp-for="Products[i].ProductName" type="hidden" />
+                <input asp-for="Products[i].UnitPrice" type="hidden" />
+            </article>
+        }
+        </div>
+    </section>
+
+    <aside class="purchase-summary">
+        <div class="purchase-summary-card">
+            <h2 class="h5 mb-3">Order Summary</h2>
+            <dl class="purchase-summary-metrics mb-3">
+                <div>
+                    <dt>Selected Items</dt>
+                    <dd data-selected-items-summary>0</dd>
+                </div>
+                <div>
+                    <dt>Subtotal</dt>
+                    <dd data-subtotal>0.00</dd>
+                </div>
+            </dl>
+
+            <div class="purchase-summary-lines mb-3">
+                <div class="purchase-summary-lines__header">
+                    <h3 class="h6 mb-0">Selected Products</h3>
+                </div>
+                <div class="purchase-summary-lines__empty text-muted small" data-summary-empty>No products selected yet.</div>
+                <div class="purchase-summary-lines__list" data-summary-lines></div>
+            </div>
+
+            <div class="mb-3">
+                <label asp-for="Received" class="form-label"></label>
+                <input asp-for="Received" class="form-control" data-received-input />
+                <span asp-validation-for="Received" class="text-danger"></span>
+            </div>
+
+            <dl class="purchase-summary-metrics purchase-summary-metrics--totals mb-0">
+                <div>
+                    <dt>Estimated Change</dt>
+                    <dd data-change-preview>0.00</dd>
+                </div>
+            </dl>
+        </div>
+    </aside>
+</div>
+<div class="row mt-3">
+    <div class="col-12">
+        <span class="text-muted small">Receipt number and reference number will be generated automatically after checkout.</span>
+    </div>
+</div>

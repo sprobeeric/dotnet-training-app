@@ -33,7 +33,7 @@ public class PaymentReceiptRepositoryIntegrationTests
 
         var repository = new PaymentReceiptRepository(dataSource, new Mock<ILogger<PaymentReceiptRepository>>().Object);
 
-        var result = await repository.SearchAsync(null, null, null, 0, 0);
+        var result = await repository.SearchAsync(null, null, null, "payment_date_utc", "desc", 0, 0);
 
         Assert.NotEmpty(result.Items);
         Assert.Contains(result.Items, paymentReceipt => paymentReceipt.ReceiptNumber == "PR-20260512-000001");
