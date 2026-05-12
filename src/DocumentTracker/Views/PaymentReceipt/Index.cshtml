@@ -4,6 +4,18 @@
     ViewData["Title"] = "Payment Receipts";
 }
 
+@functions {
+    public string SortIcon(string column)
+    {
+        if (Model.Sort != column)
+        {
+            return "⇅";
+        }
+
+        return Model.Order == "asc" ? "↑" : "↓";
+    }
+}
+
 <div class="d-flex flex-wrap justify-content-end align-items-end gap-2 mb-3">
     <a asp-action="Create" class="btn btn-primary">Create Payment Receipt</a>
 </div>
@@ -15,7 +27,7 @@
     </div>
     <div class="col-md-3 col-lg-2">
         <label asp-for="DateFrom" class="form-label fw-bold">Date Range:</label>
-        <input asp-for="DateFrom" type="date" class="form-control" />
+        <input asp-for="DateFrom"type="date" class="form-control" />
     </div>
     <div class="col-md-3 col-lg-2">
         <input asp-for="DateTo" type="date" class="form-control" />
@@ -24,7 +36,7 @@
         <button type="submit" class="btn btn-outline-primary">Search</button>
     </div>
     <div class="col-auto">
-        <a asp-action="Index" class="btn btn-outline-secondary">Clear</a>
+        <a asp-action="Index"class="btn btn-outline-secondary">Clear</a>
     </div>
 </form>
 
@@ -40,85 +52,98 @@ else
                 <tr>
                     <th>
                         <a asp-action="Index"
-                        asp-route-searchTerm="@Model.SearchTerm"
-                        asp-route-dateFrom="@Model.DateFrom?.ToString("yyyy-MM-dd")"
-                        asp-route-dateTo="@Model.DateTo?.ToString("yyyy-MM-dd")"
-                        asp-route-page="@Model.Page"
-                        asp-route-pageSize="@Model.PageSize"
-                        asp-route-sort="receipt_number"
-                        asp-route-order="@(Model.Sort == "receipt_number" && Model.Order == "asc" ? "desc" : "asc")"
-                        class="text-decoration-none text-dark">
+                           asp-route-searchTerm="@Model.SearchTerm"
+                           asp-route-dateFrom="@Model.DateFrom?.ToString("yyyy-MM-dd")"
+                           asp-route-dateTo="@Model.DateTo?.ToString("yyyy-MM-dd")"
+                           asp-route-page="@Model.Page"
+                           asp-route-pageSize="@Model.PageSize"
+                           asp-route-sort="receipt_number"
+                           asp-route-order="@(Model.Sort == "receipt_number" && Model.Order == "asc" ? "desc" : "asc")"
+                           class="text-decoration-none text-dark">
+
                             Receipt Number
+                            <span class="ms-1">@SortIcon("receipt_number")</span>
                         </a>
                     </th>
                     <th>
                         <a asp-action="Index"
-                        asp-route-searchTerm="@Model.SearchTerm"
-                        asp-route-dateFrom="@Model.DateFrom?.ToString("yyyy-MM-dd")"
-                        asp-route-dateTo="@Model.DateTo?.ToString("yyyy-MM-dd")"
-                        asp-route-page="@Model.Page"
-                        asp-route-pageSize="@Model.PageSize"
-                        asp-route-sort="reference_number"
-                        asp-route-order="@(Model.Sort == "reference_number" && Model.Order == "asc" ? "desc" : "asc")"
-                        class="text-decoration-none text-dark">
+                           asp-route-searchTerm="@Model.SearchTerm"
+                           asp-route-dateFrom="@Model.DateFrom?.ToString("yyyy-MM-dd")"
+                           asp-route-dateTo="@Model.DateTo?.ToString("yyyy-MM-dd")"
+                           asp-route-page="@Model.Page"
+                           asp-route-pageSize="@Model.PageSize"
+                           asp-route-sort="reference_number"
+                           asp-route-order="@(Model.Sort == "reference_number" && Model.Order == "asc" ? "desc" : "asc")"
+                           class="text-decoration-none text-dark">
+
                             Reference Number
+                            <span class="ms-1">@SortIcon("reference_number")</span>
                         </a>
                     </th>
                     <th>
                         <a asp-action="Index"
-                        asp-route-searchTerm="@Model.SearchTerm"
-                        asp-route-dateFrom="@Model.DateFrom?.ToString("yyyy-MM-dd")"
-                        asp-route-dateTo="@Model.DateTo?.ToString("yyyy-MM-dd")"
-                        asp-route-page="@Model.Page"
-                        asp-route-pageSize="@Model.PageSize"
-                        asp-route-sort="payment_date_utc"
-                        asp-route-order="@(Model.Sort == "payment_date_utc" && Model.Order == "asc" ? "desc" : "asc")"
-                        class="text-decoration-none text-dark">
+                           asp-route-searchTerm="@Model.SearchTerm"
+                           asp-route-dateFrom="@Model.DateFrom?.ToString("yyyy-MM-dd")"
+                           asp-route-dateTo="@Model.DateTo?.ToString("yyyy-MM-dd")"
+                           asp-route-page="@Model.Page"
+                           asp-route-pageSize="@Model.PageSize"
+                           asp-route-sort="payment_date_utc"
+                           asp-route-order="@(Model.Sort == "payment_date_utc" && Model.Order == "asc" ? "desc" : "asc")"
+                           class="text-decoration-none text-dark">
+
                             Date
+                            <span class="ms-1">@SortIcon("payment_date_utc")</span>
                         </a>
                     </th>
                     <th class="text-end">
                         <a asp-action="Index"
-                        asp-route-searchTerm="@Model.SearchTerm"
-                        asp-route-dateFrom="@Model.DateFrom?.ToString("yyyy-MM-dd")"
-                        asp-route-dateTo="@Model.DateTo?.ToString("yyyy-MM-dd")"
-                        asp-route-page="@Model.Page"
-                        asp-route-pageSize="@Model.PageSize"
-                        asp-route-sort="total_amount"
-                        asp-route-order="@(Model.Sort == "total_amount" && Model.Order == "asc" ? "desc" : "asc")"
-                        class="text-decoration-none text-dark">
+                           asp-route-searchTerm="@Model.SearchTerm"
+                           asp-route-dateFrom="@Model.DateFrom?.ToString("yyyy-MM-dd")"
+                           asp-route-dateTo="@Model.DateTo?.ToString("yyyy-MM-dd")"
+                           asp-route-page="@Model.Page"
+                           asp-route-pageSize="@Model.PageSize"
+                           asp-route-sort="total_amount"
+                           asp-route-order="@(Model.Sort == "total_amount" && Model.Order == "asc" ? "desc" : "asc")"
+                           class="text-decoration-none text-dark">
+
                             Total
+                            <span class="ms-1">@SortIcon("total_amount")</span>
                         </a>
                     </th>
                     <th class="text-end">
                         <a asp-action="Index"
-                        asp-route-searchTerm="@Model.SearchTerm"
-                        asp-route-dateFrom="@Model.DateFrom?.ToString("yyyy-MM-dd")"
-                        asp-route-dateTo="@Model.DateTo?.ToString("yyyy-MM-dd")"
-                        asp-route-page="@Model.Page"
-                        asp-route-pageSize="@Model.PageSize"
-                        asp-route-sort="received"
-                        asp-route-order="@(Model.Sort == "received" && Model.Order == "asc" ? "desc" : "asc")"
-                        class="text-decoration-none text-dark">
+                           asp-route-searchTerm="@Model.SearchTerm"
+                           asp-route-dateFrom="@Model.DateFrom?.ToString("yyyy-MM-dd")"
+                           asp-route-dateTo="@Model.DateTo?.ToString("yyyy-MM-dd")"
+                           asp-route-page="@Model.Page"
+                           asp-route-pageSize="@Model.PageSize"
+                           asp-route-sort="received"
+                           asp-route-order="@(Model.Sort == "received" && Model.Order == "asc" ? "desc" : "asc")"
+                           class="text-decoration-none text-dark">
+
                             Received
+                            <span class="ms-1">@SortIcon("received")</span>
                         </a>
                     </th>
                     <th class="text-end">
                         <a asp-action="Index"
-                        asp-route-searchTerm="@Model.SearchTerm"
-                        asp-route-dateFrom="@Model.DateFrom?.ToString("yyyy-MM-dd")"
-                        asp-route-dateTo="@Model.DateTo?.ToString("yyyy-MM-dd")"
-                        asp-route-page="@Model.Page"
-                        asp-route-pageSize="@Model.PageSize"
-                        asp-route-sort="change_amount"
-                        asp-route-order="@(Model.Sort == "change_amount" && Model.Order == "asc" ? "desc" : "asc")"
-                        class="text-decoration-none text-dark">
+                           asp-route-searchTerm="@Model.SearchTerm"
+                           asp-route-dateFrom="@Model.DateFrom?.ToString("yyyy-MM-dd")"
+                           asp-route-dateTo="@Model.DateTo?.ToString("yyyy-MM-dd")"
+                           asp-route-page="@Model.Page"
+                           asp-route-pageSize="@Model.PageSize"
+                           asp-route-sort="change_amount"
+                           asp-route-order="@(Model.Sort == "change_amount" && Model.Order == "asc" ? "desc" : "asc")"
+                           class="text-decoration-none text-dark">
+
                             Change
+                            <span class="ms-1">@SortIcon("change_amount")</span>
                         </a>
                     </th>
                     <th class="text-end">Actions</th>
                 </tr>
             </thead>
+
             <tbody>
             @foreach (var paymentReceipt in Model.PaymentReceipts)
             {
@@ -137,20 +162,21 @@ else
             }
             </tbody>
         </table>
+
         @if (Model.TotalPages > 1)
         {
             <nav class="mt-3">
                 <ul class="pagination justify-content-end">
                     <li class="page-item @(Model.Page <= 1 ? "disabled" : "")">
                         <a class="page-link"
-                        asp-action="Index"
-                        asp-route-searchTerm="@Model.SearchTerm"
-                        asp-route-dateFrom="@Model.DateFrom?.ToString("yyyy-MM-dd")"
-                        asp-route-dateTo="@Model.DateTo?.ToString("yyyy-MM-dd")"
-                        asp-route-sort="@Model.Sort"
-                        asp-route-order="@Model.Order"
-                        asp-route-page="@(Model.Page - 1)"
-                        asp-route-pageSize="@Model.PageSize">
+                           asp-action="Index"
+                           asp-route-searchTerm="@Model.SearchTerm"
+                           asp-route-dateFrom="@Model.DateFrom?.ToString("yyyy-MM-dd")"
+                           asp-route-dateTo="@Model.DateTo?.ToString("yyyy-MM-dd")"
+                           asp-route-sort="@Model.Sort"
+                           asp-route-order="@Model.Order"
+                           asp-route-page="@(Model.Page - 1)"
+                           asp-route-pageSize="@Model.PageSize">
                             Previous
                         </a>
                     </li>
@@ -159,29 +185,28 @@ else
                     {
                         <li class="page-item @(i == Model.Page ? "active" : "")">
                             <a class="page-link"
-                            asp-action="Index"
-                            asp-route-searchTerm="@Model.SearchTerm"
-                            asp-route-dateFrom="@Model.DateFrom?.ToString("yyyy-MM-dd")"
-                            asp-route-dateTo="@Model.DateTo?.ToString("yyyy-MM-dd")"
-                            asp-route-sort="@Model.Sort"
-                            asp-route-order="@Model.Order"
-                            asp-route-page="@i"
-                            asp-route-pageSize="@Model.PageSize">
+                               asp-action="Index"
+                               asp-route-searchTerm="@Model.SearchTerm"
+                               asp-route-dateFrom="@Model.DateFrom?.ToString("yyyy-MM-dd")"
+                               asp-route-dateTo="@Model.DateTo?.ToString("yyyy-MM-dd")"
+                               asp-route-sort="@Model.Sort"
+                               asp-route-order="@Model.Order"
+                               asp-route-page="@i"
+                               asp-route-pageSize="@Model.PageSize">
                                 @i
                             </a>
                         </li>
                     }
-
                     <li class="page-item @(Model.Page >= Model.TotalPages ? "disabled" : "")">
                         <a class="page-link"
-                        asp-action="Index"
-                        asp-route-searchTerm="@Model.SearchTerm"
-                        asp-route-dateFrom="@Model.DateFrom?.ToString("yyyy-MM-dd")"
-                        asp-route-dateTo="@Model.DateTo?.ToString("yyyy-MM-dd")"
-                        asp-route-sort="@Model.Sort"
-                        asp-route-order="@Model.Order"
-                        asp-route-page="@(Model.Page + 1)"
-                        asp-route-pageSize="@Model.PageSize">
+                           asp-action="Index"
+                           asp-route-searchTerm="@Model.SearchTerm"
+                           asp-route-dateFrom="@Model.DateFrom?.ToString("yyyy-MM-dd")"
+                           asp-route-dateTo="@Model.DateTo?.ToString("yyyy-MM-dd")"
+                           asp-route-sort="@Model.Sort"
+                           asp-route-order="@Model.Order"
+                           asp-route-page="@(Model.Page + 1)"
+                           asp-route-pageSize="@Model.PageSize">
                             Next
                         </a>
                     </li>
