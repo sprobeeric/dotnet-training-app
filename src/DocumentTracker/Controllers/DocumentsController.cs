@@ -93,7 +93,8 @@ public class DocumentsController : Controller
             return View(viewModel);
         }
 
-        return RedirectToAction(nameof(Details), new { id = viewModel.Id });
+        return RedirectToAction(nameeof(Create));
+       // return RedirectToAction(nameof(Details), new { id = viewModel.Id });
     }
 
     public async Task<IActionResult> Delete(int id)
