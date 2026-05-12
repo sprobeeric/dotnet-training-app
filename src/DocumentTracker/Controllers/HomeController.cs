@@ -8,7 +8,7 @@ public class HomeController : Controller
 {
     public IActionResult Index()
     {
-        return RedirectToAction("Index", "Documents");
+        return RedirectToAction("Index", "PaymentReceipt");
     }
 
     [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
