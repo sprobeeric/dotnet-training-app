@@ -4,11 +4,11 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace DocumentTracker.Controllers;
 
-public class InvoiceController : Controller
+public class InvoicesController : Controller
 {
     private readonly IInvoiceService _invoiceService;
 
-    public InvoiceController(IInvoiceService invoiceService)
+    public InvoicesController(IInvoiceService invoiceService)
     {
         _invoiceService = invoiceService;
     }
