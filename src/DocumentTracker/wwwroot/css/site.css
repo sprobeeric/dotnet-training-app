@@ -18,12 +18,22 @@ html {
 }
 
 body {
-  margin-bottom: 60px;
+  min-height: 100vh;
 }
 
 .purchase-layout {
   display: grid;
   gap: 1.5rem;
+}
+
+.purchase-form {
+  padding-bottom: 2rem;
+}
+
+.purchase-form-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
 }
 
 .purchase-products,

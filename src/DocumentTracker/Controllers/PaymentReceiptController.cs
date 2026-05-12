@@ -79,7 +79,7 @@ public class PaymentReceiptController : Controller
         }
 
         TempData["SuccessMessage"] = "Payment receipt created.";
-        return RedirectToAction(nameof(Create));
+        return RedirectToAction(nameof(Details), new { id = result.Value });
     }
 
     private static void MergeSubmittedQuantities(PaymentReceiptCreateViewModel target, PaymentReceiptCreateViewModel source)
