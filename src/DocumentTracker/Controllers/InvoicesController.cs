@@ -47,7 +47,12 @@ public class InvoicesController : Controller
           return View(viewModel);
       }
 
-        return RedirectToAction(nameof(Details), new { id = result.Value });
+      //remove this if Details exists
+      TempData["SuccessMessage"] = "Invoice created successfully.";
+      return RedirectToAction(nameof(Create));
+
+      //uncomment the code below if Details exists
+       // return RedirectToAction(nameof(Details), new { id = result.Value });
     }
 
     private void AddServiceErrors(ServiceResult result)

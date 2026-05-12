@@ -41,7 +41,6 @@ public class InvoiceService : IInvoiceService
             Status = viewModel.Status!.Value,
             Notes = string.IsNullOrWhiteSpace(viewModel.Notes) ? null : viewModel.Notes.Trim(),
 
-            // temporary/default values if create form does not handle invoice items yet
             Subtotal = viewModel.Subtotal,
             TaxAmount = viewModel.TaxAmount,
             TotalAmount = viewModel.Subtotal + viewModel.TaxAmount,

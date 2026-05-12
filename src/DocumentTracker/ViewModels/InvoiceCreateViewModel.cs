@@ -30,17 +30,38 @@ public class InvoiceCreateViewModel : IValidatableObject
 
     [Display(Name = "Subtotal")]
     [Range(0.01, 999999999.99)]
-    public decimal Subtotal { get; set;}
+    public decimal Subtotal { get; set; }
 
     [Display(Name = "TaxAmount")]
-    [Range(0.01, 999999999.99)]
-    public decimal TaxAmount { get; set;}
+    [Range(0, 999999999.99)]
+    public decimal TaxAmount { get; set; }
 
     [StringLength(1000)]
     public string? Notes { get; set; }
 
     public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
     {
+        if (string.IsNullOrWhiteSpace(InvoiceNumber))
+        {
+            yield return new ValidationResult(
+                "Invoice number is required.",
+                [nameof(InvoiceNumber)]);
+        }
+
+        if (string.IsNullOrWhiteSpace(CustomerName))
+        {
+            yield return new ValidationResult(
+                "Customer name is required.",
+                [nameof(CustomerName)]);
+        }
+
+        if (Status.HasValue && !Enum.IsDefined(Status.Value))
+        {
+            yield return new ValidationResult(
+                    "Status is invalid.",
+                    [nameof(Status)]);
+        }
+
         if (DueDate < InvoiceDate)
         {
             yield return new ValidationResult(
