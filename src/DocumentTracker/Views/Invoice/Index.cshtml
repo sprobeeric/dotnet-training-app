@@ -16,25 +16,13 @@
     <div class="col-md-3 col-lg-2">
         <label asp-for="InvoiceDateFrom" class="form-label">Invoice date from</label>
         <div>
-            <input type="text"
-                class="form-control"
-                value="@(Model.InvoiceDateFrom?.ToString("yyyy/MM/dd") ?? string.Empty)"
-                placeholder="yyyy/mm/dd"
-                readonly
-                data-date-display="InvoiceDateFrom" />
-            <input asp-for="InvoiceDateFrom" type="date" class="visually-hidden" tabindex="-1" data-date-source="InvoiceDateFrom" />
+            <input asp-for="InvoiceDateFrom" type="date" class="form-control" />
         </div>
     </div>
     <div class="col-md-3 col-lg-2">
         <label asp-for="InvoiceDateTo" class="form-label">Invoice date to</label>
         <div>
-            <input type="text"
-                class="form-control"
-                value="@(Model.InvoiceDateTo?.ToString("yyyy/MM/dd") ?? string.Empty)"
-                placeholder="yyyy/mm/dd"
-                readonly
-                data-date-display="InvoiceDateTo" />
-            <input asp-for="InvoiceDateTo" type="date" class="visually-hidden" tabindex="-1" data-date-source="InvoiceDateTo" />
+            <input asp-for="InvoiceDateTo" type="date" class="form-control" />
         </div>
     </div>
     <div class="col-auto">
@@ -86,8 +74,4 @@ else
             </tbody>
         </table>
     </div>
-}
-
-@section Scripts {
-    <script src="~/js/invoice-index.js" asp-append-version="true"></script>
 }
