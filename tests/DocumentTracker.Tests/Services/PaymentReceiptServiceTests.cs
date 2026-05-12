@@ -28,7 +28,7 @@ public class PaymentReceiptServiceTests
 
         _numberGenerator
             .Setup(generator => generator.GenerateAsync())
-            .ReturnsAsync(("RCP-20260512-000001", "REF-20260512-000001-ABC123", DateTime.SpecifyKind(new DateTime(2026, 5, 12, 10, 0, 0), DateTimeKind.Utc)));
+            .ReturnsAsync(("PR-20260512-000001", "REF-20260512-000001-ABC123", DateTime.SpecifyKind(new DateTime(2026, 5, 12, 10, 0, 0), DateTimeKind.Utc)));
 
         _paymentReceiptRepository
             .Setup(repository => repository.CreateAsync(It.IsAny<PaymentReceipt>(), It.IsAny<IReadOnlyList<PaymentReceiptProduct>>()))
@@ -39,7 +39,7 @@ public class PaymentReceiptServiceTests
         Assert.True(result.Succeeded);
         Assert.Equal(11, result.Value);
         _paymentReceiptRepository.Verify(repository => repository.CreateAsync(It.Is<PaymentReceipt>(paymentReceipt =>
-            paymentReceipt.ReceiptNumber.StartsWith("RCP-") &&
+            paymentReceipt.ReceiptNumber.StartsWith("PR-") &&
             paymentReceipt.ReferenceNumber.StartsWith("REF-") &&
             paymentReceipt.TotalAmount == 350m &&
             paymentReceipt.ChangeAmount == 50m &&
@@ -117,8 +117,8 @@ public class PaymentReceiptServiceTests
 
         _numberGenerator
             .SetupSequence(generator => generator.GenerateAsync())
-            .ReturnsAsync(("RCP-20260512-000001", "REF-20260512-000001-ABC123", DateTime.SpecifyKind(new DateTime(2026, 5, 12, 10, 0, 0), DateTimeKind.Utc)))
-            .ReturnsAsync(("RCP-20260512-000002", "REF-20260512-000002-XYZ789", DateTime.SpecifyKind(new DateTime(2026, 5, 12, 10, 0, 1), DateTimeKind.Utc)));
+            .ReturnsAsync(("PR-20260512-000001", "REF-20260512-000001-ABC123", DateTime.SpecifyKind(new DateTime(2026, 5, 12, 10, 0, 0), DateTimeKind.Utc)))
+            .ReturnsAsync(("PR-20260512-000002", "REF-20260512-000002-XYZ789", DateTime.SpecifyKind(new DateTime(2026, 5, 12, 10, 0, 1), DateTimeKind.Utc)));
 
         _paymentReceiptRepository
             .SetupSequence(repository => repository.CreateAsync(It.IsAny<PaymentReceipt>(), It.IsAny<IReadOnlyList<PaymentReceiptProduct>>()))

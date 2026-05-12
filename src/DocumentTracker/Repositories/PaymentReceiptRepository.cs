@@ -41,13 +41,13 @@ public class PaymentReceiptRepository : IPaymentReceiptRepository
         receipt.PaymentReceiptProducts = products.AsList();
         return receipt;
     }
-    
+
     public async Task<int> GetNextReceiptSequenceAsync(DateOnly paymentDate)
     {
         await using var connection = await _dataSource.OpenConnectionAsync();
         return await connection.ExecuteScalarAsync<int>(
             PaymentReceiptSql.GetNextReceiptSequence,
-            new { ReceiptPrefix = $"RCP-{paymentDate:yyyyMMdd}" });
+            new { ReceiptPrefix = $"PR-{paymentDate:yyyyMMdd}" });
     }
 
     public async Task<int> CreateAsync(PaymentReceipt paymentReceipt, IReadOnlyList<PaymentReceiptProduct> products)
