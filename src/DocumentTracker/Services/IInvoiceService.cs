@@ -4,5 +4,5 @@ namespace DocumentTracker.Services;
 
 public interface IInvoiceService
 {
-    Task<IReadOnlyList<InvoiceListItemViewModel>> SearchAsync(string? searchTerm);
+    Task<IReadOnlyList<InvoiceListItemViewModel>> SearchAsync(string? searchTerm, DateOnly? invoiceDateFrom, DateOnly? invoiceDateTo);
 }

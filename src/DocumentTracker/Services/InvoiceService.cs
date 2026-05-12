@@ -13,9 +13,9 @@ public class InvoiceService : IInvoiceService
         _repository = repository;
     }
 
-    public async Task<IReadOnlyList<InvoiceListItemViewModel>> SearchAsync(string? searchTerm)
+    public async Task<IReadOnlyList<InvoiceListItemViewModel>> SearchAsync(string? searchTerm, DateOnly? invoiceDateFrom, DateOnly? invoiceDateTo)
     {
-        var invoices = await _repository.SearchAsync(searchTerm);
+        var invoices = await _repository.SearchAsync(searchTerm, invoiceDateFrom, invoiceDateTo);
         return invoices.Select(ToListItem).ToList();
     }
 

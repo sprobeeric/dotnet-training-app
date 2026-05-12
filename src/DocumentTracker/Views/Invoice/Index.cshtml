@@ -9,9 +9,33 @@
 </div>
 
 <form asp-action="Index" method="get" class="row g-2 align-items-end mb-4">
-    <div class="col-md-8 col-lg-6">
+    <div class="col-md-6 col-lg-4">
         <label asp-for="SearchTerm" class="form-label">Search</label>
         <input asp-for="SearchTerm" class="form-control" placeholder="Invoice number, customer, or status" />
+    </div>
+    <div class="col-md-3 col-lg-2">
+        <label asp-for="InvoiceDateFrom" class="form-label">Invoice date from</label>
+        <div>
+            <input type="text"
+                class="form-control"
+                value="@(Model.InvoiceDateFrom?.ToString("yyyy/MM/dd") ?? string.Empty)"
+                placeholder="yyyy/mm/dd"
+                readonly
+                data-date-display="InvoiceDateFrom" />
+            <input asp-for="InvoiceDateFrom" type="date" class="visually-hidden" tabindex="-1" data-date-source="InvoiceDateFrom" />
+        </div>
+    </div>
+    <div class="col-md-3 col-lg-2">
+        <label asp-for="InvoiceDateTo" class="form-label">Invoice date to</label>
+        <div>
+            <input type="text"
+                class="form-control"
+                value="@(Model.InvoiceDateTo?.ToString("yyyy/MM/dd") ?? string.Empty)"
+                placeholder="yyyy/mm/dd"
+                readonly
+                data-date-display="InvoiceDateTo" />
+            <input asp-for="InvoiceDateTo" type="date" class="visually-hidden" tabindex="-1" data-date-source="InvoiceDateTo" />
+        </div>
     </div>
     <div class="col-auto">
         <button type="submit" class="btn btn-outline-primary">Search</button>
@@ -62,4 +86,8 @@ else
             </tbody>
         </table>
     </div>
+}
+
+@section Scripts {
+    <script src="~/js/invoice-index.js" asp-append-version="true"></script>
 }

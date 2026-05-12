@@ -22,12 +22,14 @@ public static class InvoiceSql
         SELECT {SelectColumns}
         FROM invoices
         WHERE deleted_at_utc IS NULL
-          AND (
-              @SearchTerm IS NULL
-              OR invoice_number ILIKE @SearchPattern
-              OR customer_name ILIKE @SearchPattern
-              OR status ILIKE @SearchPattern
-          )
+            AND (
+                @SearchTerm IS NULL
+                OR invoice_number ILIKE @SearchPattern
+                OR customer_name ILIKE @SearchPattern
+                OR status ILIKE @SearchPattern
+            )
+            AND (@InvoiceDateFrom IS NULL OR invoice_date >= @InvoiceDateFrom)
+            AND (@InvoiceDateTo IS NULL OR invoice_date <= @InvoiceDateTo)
         ORDER BY COALESCE(updated_at_utc, created_at_utc) DESC, id DESC;
         """;
 }

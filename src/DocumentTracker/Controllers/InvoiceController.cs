@@ -13,12 +13,14 @@ public class InvoiceController : Controller
         _invoiceService = invoiceService;
     }
 
-    public async Task<IActionResult> Index(string? searchTerm)
+    public async Task<IActionResult> Index(string? searchTerm, DateOnly? invoiceDateFrom, DateOnly? invoiceDateTo)
     {
-        var invoices = await _invoiceService.SearchAsync(searchTerm);
+        var invoices = await _invoiceService.SearchAsync(searchTerm, invoiceDateFrom, invoiceDateTo);
         return View(new InvoiceSearchViewModel
         {
             SearchTerm = searchTerm,
+            InvoiceDateFrom = invoiceDateFrom,
+            InvoiceDateTo = invoiceDateTo,
             Invoices = invoices
         });
     }

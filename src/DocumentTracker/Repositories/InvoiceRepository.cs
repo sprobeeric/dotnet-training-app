@@ -15,7 +15,7 @@ public class InvoiceRepository : IInvoiceRepository
         _logger = logger;
     }
 
-    public async Task<IReadOnlyList<Invoice>> SearchAsync(string? searchTerm)
+    public async Task<IReadOnlyList<Invoice>> SearchAsync(string? searchTerm, DateOnly? invoiceDateFrom, DateOnly? invoiceDateTo)
     {
         var normalizedSearch = string.IsNullOrWhiteSpace(searchTerm) ? null : searchTerm.Trim();
 
@@ -25,10 +25,16 @@ public class InvoiceRepository : IInvoiceRepository
             new
             {
                 SearchTerm = normalizedSearch,
-                SearchPattern = normalizedSearch is null ? null : $"%{normalizedSearch}%"
+                SearchPattern = normalizedSearch is null ? null : $"%{normalizedSearch}%",
+                InvoiceDateFrom = invoiceDateFrom,
+                InvoiceDateTo = invoiceDateTo
             });
 
-        _logger.LogDebug("Searched invoices with term {SearchTerm}.", normalizedSearch);
+        _logger.LogDebug(
+            "Searched invoices with term {SearchTerm}, invoice date from {InvoiceDateFrom}, invoice date to {InvoiceDateTo}.",
+            normalizedSearch,
+            invoiceDateFrom,
+            invoiceDateTo);
         return invoices.AsList();
     }
 }
