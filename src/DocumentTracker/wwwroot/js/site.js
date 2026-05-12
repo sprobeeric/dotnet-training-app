@@ -1,7 +1,7 @@
 ﻿// Please see documentation at https://learn.microsoft.com/aspnet/core/client-side/bundling-and-minification
 // for details on configuring this project to bundle and minify static web assets.
 
-document.addEventListener("DOMContentLoaded", () => {
+const initializePaymentReceiptForm = () => {
     const form = document.querySelector("[data-purchase-form]");
     if (!form) {
         return;
@@ -35,7 +35,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 selectedItems += quantity;
                 subtotal += quantity * unitPrice;
                 selectedProducts.push({
-                    name: card?.dataset.productNameDisplay || card?.querySelector(".product-card__name")?.textContent || "",
+                    name: card?.querySelector(".product-card__name")?.textContent || "",
                     quantity,
                     unitPrice,
                     lineTotal: quantity * unitPrice
@@ -108,4 +108,10 @@ document.addEventListener("DOMContentLoaded", () => {
 
     filterProducts();
     updateSummary();
-});
+};
+
+if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", initializePaymentReceiptForm);
+} else {
+    initializePaymentReceiptForm();
+}
