@@ -152,19 +152,19 @@ else
                 </tr>
             </thead>
             <tbody>
-            @foreach (var paymentReceipt in Model.Receipts)
+            @foreach (var receipt in Model.Receipts)
             {
                 <tr>
-                    <td>@paymentReceipt.ReceiptNumber</td>
-                    <td>@paymentReceipt.InvoiceNumber</td>
-                    <td>@paymentReceipt.PaymentDate.ToString("yyyy-MM-dd")</td>
-                    <td class="text-end">@paymentReceipt.AmountPaid.ToString("N2")</td>
-                    <td>@paymentReceipt.PaymentMethod</td>
-                    <td>@paymentReceipt.ReferenceNumber</td>
-                    <td>@paymentReceipt.Notes</td>
+                    <td>@receipt.ReceiptNumber</td>
+                    <td>@receipt.InvoiceNumber</td>
+                    <td>@receipt.PaymentDate.ToString("yyyy-MM-dd")</td>
+                    <td class="text-end">@receipt.AmountPaid.ToString("N2")</td>
+                    <td>@receipt.PaymentMethod</td>
+                    <td>@receipt.ReferenceNumber</td>
+                    <td>@receipt.Notes</td>
                     <td class="text-end text-nowrap">
-                        <a asp-action="Details" asp-route-id="@paymentReceipt.Id" class="btn btn-sm btn-outline-secondary">Details</a>
-                        <a asp-action="Delete" asp-route-id="@paymentReceipt.Id" class="btn btn-sm btn-outline-danger">Delete</a>
+                        <a asp-action="Details" asp-route-id="@receipt.Id" class="btn btn-sm btn-outline-secondary">Details</a>
+                        <a asp-action="Delete" asp-route-id="@receipt.Id" class="btn btn-sm btn-outline-danger">Delete</a>
                     </td>
                 </tr>
             }
