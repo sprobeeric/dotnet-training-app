@@ -83,11 +83,8 @@ public class InvoicesController : Controller
             AddServiceErrors(result);
             return View(viewModel);
         }
-
-        return RedirectToAction(nameof(Edit), new { id = viewModel.Id });
+        return RedirectToAction(nameof(Index));
     }
-
-    
     private void AddServiceErrors(ServiceResult result)
     {
         foreach (var error in result.Errors)

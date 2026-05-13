@@ -54,7 +54,7 @@ public class InvoiceService : IInvoiceService
         return ServiceResult<InvoiceEditViewModel>.Success(ToEdit(invoice));
     }
 
-        public async Task<ServiceResult> UpdateAsync(InvoiceEditViewModel viewModel)
+    public async Task<ServiceResult> UpdateAsync(InvoiceEditViewModel viewModel)
     {
         var validationResult = Validate(viewModel);
         if (!validationResult.Succeeded)
@@ -65,7 +65,7 @@ public class InvoiceService : IInvoiceService
         var invoiceData = await _repository.GetByIdAsync(viewModel.Id);
         if (invoiceData is null)
         {
-            return ServiceResult.Failure(string.Empty, "The document was not found.");
+            return ServiceResult.Failure(string.Empty, "The invoice was not found.");
         }
 
         if (invoiceData.DeletedAtUtc is not null)
@@ -74,9 +74,9 @@ public class InvoiceService : IInvoiceService
         }
 
         var duplicate = await _repository.GetByInvoiceNumberAsync(viewModel.InvoiceNumber);
-        if (duplicate is not null && duplicate.Id != viewModel.Id)
+        if (duplicate is not null && duplicate.InvoiceNumber != viewModel.InvoiceNumber)
         {
-            return ServiceResult.Failure(nameof(viewModel.InvoiceNumber), "A document with this document number already exists.");
+            return ServiceResult.Failure(nameof(viewModel.InvoiceNumber), "A invoice with this invoice number already exists.");
         }
 
         invoiceData.InvoiceNumber = viewModel.InvoiceNumber.Trim();

@@ -7,9 +7,9 @@ namespace DocumentTracker.Repositories;
 public class InvoiceRepository : IInvoiceRepository
 {
     private readonly NpgsqlDataSource _dataSource;
-    private readonly ILogger<DocumentRepository> _logger;
+    private readonly ILogger<InvoiceRepository> _logger;
 
-    public InvoiceRepository(NpgsqlDataSource dataSource, ILogger<DocumentRepository> logger)
+    public InvoiceRepository(NpgsqlDataSource dataSource, ILogger<InvoiceRepository> logger)
     {
         _dataSource = dataSource;
         _logger = logger;
