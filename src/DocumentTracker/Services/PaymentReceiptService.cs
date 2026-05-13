@@ -8,7 +8,6 @@ namespace DocumentTracker.Services;
 
 public class PaymentReceiptService : IPaymentReceiptService
 {
-    private const int MaxCreateAttempts = 3;
     private static readonly HashSet<string> AllowedPaymentMethods =
     [
         "Cash",
@@ -20,18 +19,15 @@ public class PaymentReceiptService : IPaymentReceiptService
 
     private readonly IPaymentReceiptRepository _paymentReceiptRepository;
     private readonly IInvoiceLookupRepository _invoiceLookupRepository;
-    private readonly IPaymentReceiptNumberSequenceProvider _sequenceProvider;
     private readonly ILogger<PaymentReceiptService> _logger;
 
     public PaymentReceiptService(
         IPaymentReceiptRepository paymentReceiptRepository,
         IInvoiceLookupRepository invoiceLookupRepository,
-        IPaymentReceiptNumberSequenceProvider sequenceProvider,
         ILogger<PaymentReceiptService> logger)
     {
         _paymentReceiptRepository = paymentReceiptRepository;
         _invoiceLookupRepository = invoiceLookupRepository;
-        _sequenceProvider = sequenceProvider;
         _logger = logger;
     }
 
@@ -48,12 +44,15 @@ public class PaymentReceiptService : IPaymentReceiptService
 
     public async Task<ServiceResult<int>> CreateAsync(PaymentReceiptCreateViewModel viewModel)
     {
+        viewModel.ReceiptNumber = viewModel.ReceiptNumber.Trim();
         viewModel.InvoiceNumber = viewModel.InvoiceNumber.Trim();
-        viewModel.ReferenceNumber = string.IsNullOrWhiteSpace(viewModel.ReferenceNumber) ? null : viewModel.ReferenceNumber.Trim();
+        viewModel.ReferenceNumber = string.Equals(viewModel.PaymentMethod, "Cash", StringComparison.Ordinal)
+            ? null
+            : string.IsNullOrWhiteSpace(viewModel.ReferenceNumber) ? null : viewModel.ReferenceNumber.Trim();
         viewModel.Notes = string.IsNullOrWhiteSpace(viewModel.Notes) ? null : viewModel.Notes.Trim();
         await PopulateInvoiceSummaryAsync(viewModel);
 
-        var validationResult = ValidateCreate(viewModel);
+        var validationResult = Validate(viewModel);
         if (!validationResult.Succeeded)
         {
             return validationResult;
@@ -64,48 +63,43 @@ public class PaymentReceiptService : IPaymentReceiptService
             return ServiceResult<int>.Failure(string.Empty, "The payment receipt could not be created.");
         }
 
-        var invoiceIsActive = await _paymentReceiptRepository.InvoiceExistsAndActiveAsync(viewModel.InvoiceId.Value);
-        if (!invoiceIsActive)
+        var invoiceIsPending = await _paymentReceiptRepository.InvoiceExistsAndPendingAsync(viewModel.InvoiceId.Value);
+        if (!invoiceIsPending)
         {
-            return ServiceResult<int>.Failure(nameof(viewModel.InvoiceNumber), "Only active invoices can receive payments.");
+            return ServiceResult<int>.Failure(nameof(viewModel.InvoiceNumber), "Only invoices in Pending status can receive payments.");
+        }
+
+        var receiptNumberExists = await _paymentReceiptRepository.ReceiptNumberExistsAsync(viewModel.ReceiptNumber);
+        if (receiptNumberExists)
+        {
+            return ServiceResult<int>.Failure(nameof(viewModel.ReceiptNumber), "A payment receipt with this receipt number already exists.");
+        }
+
+        if (!string.IsNullOrWhiteSpace(viewModel.ReferenceNumber))
+        {
+            var referenceNumberExists = await _paymentReceiptRepository.ReferenceNumberExistsAsync(viewModel.ReferenceNumber);
+            if (referenceNumberExists)
+            {
+                return ServiceResult<int>.Failure(nameof(viewModel.ReferenceNumber), "A payment receipt with this reference number already exists.");
+            }
         }
 
         var now = DateTime.UtcNow;
-
-        for (var attempt = 1; attempt <= MaxCreateAttempts; attempt++)
+        var paymentReceipt = new PaymentReceipt
         {
-            var receiptNumber = await GenerateReceiptNumberAsync();
+            ReceiptNumber = viewModel.ReceiptNumber,
+            InvoiceId = viewModel.InvoiceId.Value,
+            PaymentDate = viewModel.PaymentDate.Value,
+            AmountPaid = viewModel.AmountPaid.Value,
+            PaymentMethod = viewModel.PaymentMethod,
+            ReferenceNumber = viewModel.ReferenceNumber,
+            Notes = viewModel.Notes,
+            CreatedAtUtc = now,
+            UpdatedAtUtc = now
+        };
 
-            var paymentReceipt = new PaymentReceipt
-            {
-                ReceiptNumber = receiptNumber,
-                InvoiceId = viewModel.InvoiceId.Value,
-                PaymentDate = viewModel.PaymentDate.Value,
-                AmountPaid = viewModel.AmountPaid.Value,
-                PaymentMethod = viewModel.PaymentMethod,
-                ReferenceNumber = viewModel.ReferenceNumber,
-                Notes = viewModel.Notes,
-                CreatedAtUtc = now,
-                UpdatedAtUtc = now
-            };
-
-            try
-            {
-                var id = await _paymentReceiptRepository.CreateAsync(paymentReceipt);
-                return ServiceResult<int>.Success(id);
-            }
-            catch (PostgresException ex) when (ex.SqlState == PostgresErrorCodes.UniqueViolation && attempt < MaxCreateAttempts)
-            {
-                _logger.LogWarning(ex, "Payment receipt create hit a unique-value collision on attempt {Attempt}. Retrying.", attempt);
-            }
-            catch (PostgresException ex) when (ex.SqlState == PostgresErrorCodes.UniqueViolation)
-            {
-                _logger.LogWarning(ex, "Payment receipt create failed after {AttemptCount} attempts because receipt numbering kept colliding.", attempt);
-                return ServiceResult<int>.Failure(string.Empty, "The payment receipt could not be created. Please submit again.");
-            }
-        }
-
-        return ServiceResult<int>.Failure(string.Empty, "The payment receipt could not be created. Please submit again.");
+        var id = await _paymentReceiptRepository.CreateAsync(paymentReceipt);
+        return ServiceResult<int>.Success(id);
     }
 
     public async Task<PaymentReceiptDetailsViewModel?> GetDetailsAsync(int id)
@@ -170,13 +164,7 @@ public class PaymentReceiptService : IPaymentReceiptService
         viewModel.InvoiceId = viewModel.InvoiceSummary?.InvoiceId;
     }
 
-    private async Task<string> GenerateReceiptNumberAsync()
-    {
-        var nextSequence = await _sequenceProvider.GetNextReceiptSequenceAsync();
-        return $"PR-{nextSequence:D4}";
-    }
-
-    private static ServiceResult<int> ValidateCreate(PaymentReceiptCreateViewModel viewModel)
+    private static ServiceResult<int> Validate(PaymentReceiptCreateViewModel viewModel)
     {
         var result = new ServiceResult<int>();
         AddValidationErrors(result, viewModel);
@@ -191,16 +179,16 @@ public class PaymentReceiptService : IPaymentReceiptService
             result.AddError(nameof(viewModel.PaymentMethod), "Select a valid payment method.");
         }
 
-        if (viewModel.InvoiceSummary is not null && viewModel.AmountPaid.HasValue)
+        if (viewModel.InvoiceSummary is not null)
         {
-            if (viewModel.InvoiceSummary.RemainingBalance <= 0)
+            if (!viewModel.InvoiceSummary.AllowsPayment)
             {
-                result.AddError(nameof(viewModel.InvoiceNumber), "This invoice does not have any remaining balance.");
+                result.AddError(nameof(viewModel.InvoiceNumber), "Only invoices in Pending status can receive payments.");
             }
 
-            if (viewModel.AmountPaid.Value > viewModel.InvoiceSummary.RemainingBalance)
+            if (viewModel.AmountPaid.HasValue && viewModel.AmountPaid.Value != viewModel.InvoiceSummary.RemainingBalance)
             {
-                result.AddError(nameof(viewModel.AmountPaid), $"Amount paid cannot exceed the remaining balance of {viewModel.InvoiceSummary.RemainingBalance:N2}.");
+                result.AddError(nameof(viewModel.AmountPaid), $"Amount paid must exactly match the remaining balance of {viewModel.InvoiceSummary.RemainingBalance:N2}.");
             }
         }
 
