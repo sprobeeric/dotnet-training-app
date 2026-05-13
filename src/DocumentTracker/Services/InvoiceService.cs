@@ -46,7 +46,6 @@ public class InvoiceService : IInvoiceService
             TotalAmount = viewModel.Subtotal + viewModel.TaxAmount,
 
             CreatedAtUtc = now,
-            UpdatedAtUtc = now
         };
 
         try

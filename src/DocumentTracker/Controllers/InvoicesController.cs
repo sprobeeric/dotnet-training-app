@@ -25,7 +25,7 @@ public class InvoicesController : Controller
         var viewModel = new InvoiceCreateViewModel
         {
             InvoiceDate = DateOnly.FromDateTime(DateTime.Today),
-            DueDate = DateOnly.FromDateTime(DateTime.Today.AddDays(30))
+            DueDate = DateOnly.FromDateTime(DateTime.Today)
         };
 
         return View(viewModel);
@@ -47,7 +47,8 @@ public class InvoicesController : Controller
           return View(viewModel);
       }
 
-       return RedirectToAction(nameof(Details), new { id = result.Value });
+      return RedirectToAction(nameof(Create));
+       //return RedirectToAction(nameof(Details), new { id = result.Value });
     }
 
     private void AddServiceErrors(ServiceResult result)
