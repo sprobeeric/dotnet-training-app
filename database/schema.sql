@@ -64,7 +64,7 @@ CREATE TABLE IF NOT EXISTS payment_receipts (
     payment_method VARCHAR(30) NOT NULL,
     reference_number VARCHAR(100),
     notes VARCHAR(1000),
-    created_at_utc timestamp with time zone NULL,
+    created_at_utc timestamp with time zone NOT NULL,
     updated_at_utc timestamp with time zone NULL,
     deleted_at_utc timestamp with time zone NULL,
 
@@ -80,10 +80,9 @@ CREATE TABLE IF NOT EXISTS payment_receipts (
         CHECK (
             payment_method IN (
                 'Cash',
-                'Bank Transfer',
+                'BankTransfer',
                 'Check',
-                'Credit Card',
-                'Debit Card'
+                'Card'
             )
         )
 );
