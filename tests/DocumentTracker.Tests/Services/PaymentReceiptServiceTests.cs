@@ -43,7 +43,7 @@ public class PaymentReceiptServiceTests
             .Setup(repository => repository.InvoiceExistsAndPendingAsync(1))
             .ReturnsAsync(true);
         _paymentReceiptRepository
-            .Setup(repository => repository.ReceiptNumberExistsAsync("RCT-0001", null))
+            .Setup(repository => repository.ReceiptNumberExistsAsync("PR-0001", null))
             .ReturnsAsync(false);
         _paymentReceiptRepository
             .Setup(repository => repository.ReferenceNumberExistsAsync("REF-1001", null))
@@ -125,7 +125,7 @@ public class PaymentReceiptServiceTests
             .Setup(repository => repository.InvoiceExistsAndPendingAsync(1))
             .ReturnsAsync(true);
         _paymentReceiptRepository
-            .Setup(repository => repository.ReceiptNumberExistsAsync("RCT-0001", null))
+            .Setup(repository => repository.ReceiptNumberExistsAsync("PR-0001", null))
             .ReturnsAsync(false);
         _paymentReceiptRepository
             .Setup(repository => repository.ReferenceNumberExistsAsync("REF-1001", null))
@@ -139,11 +139,13 @@ public class PaymentReceiptServiceTests
         Assert.True(result.Succeeded);
         Assert.Equal(11, result.Value);
         _paymentReceiptRepository.Verify(repository => repository.CreateAsync(It.Is<PaymentReceipt>(receipt =>
+            receipt.ReceiptNumber == "PR-0001" &&
             receipt.InvoiceId == 1 &&
-            receipt.InvoiceNumber == "INV-1001" &&
-            receipt.CustomerName == "Northwind Traders" &&
+            receipt.PaymentDate == new DateOnly(2026, 5, 13) &&
             receipt.AmountPaid == 250m &&
-            receipt.PaymentMethod == "BankTransfer")), Times.Once);
+            receipt.PaymentMethod == "Bank Transfer" &&
+            receipt.ReferenceNumber == "REF-1001" &&
+            receipt.Notes == "Partial payment received.")), Times.Once);
     }
 
     [Fact]
@@ -207,7 +209,7 @@ public class PaymentReceiptServiceTests
             .Setup(repository => repository.InvoiceExistsAndPendingAsync(1))
             .ReturnsAsync(true);
         _paymentReceiptRepository
-            .Setup(repository => repository.ReceiptNumberExistsAsync("RCT-0001", null))
+            .Setup(repository => repository.ReceiptNumberExistsAsync("PR-0001", null))
             .ReturnsAsync(true);
 
         var result = await service.CreateAsync(viewModel);
@@ -230,7 +232,7 @@ public class PaymentReceiptServiceTests
             .Setup(repository => repository.InvoiceExistsAndPendingAsync(1))
             .ReturnsAsync(true);
         _paymentReceiptRepository
-            .Setup(repository => repository.ReceiptNumberExistsAsync("RCT-0001", null))
+            .Setup(repository => repository.ReceiptNumberExistsAsync("PR-0001", null))
             .ReturnsAsync(false);
         _paymentReceiptRepository
             .Setup(repository => repository.ReferenceNumberExistsAsync("REF-1001", null))
@@ -258,7 +260,7 @@ public class PaymentReceiptServiceTests
             .Setup(repository => repository.InvoiceExistsAndPendingAsync(1))
             .ReturnsAsync(true);
         _paymentReceiptRepository
-            .Setup(repository => repository.ReceiptNumberExistsAsync("RCT-0001", null))
+            .Setup(repository => repository.ReceiptNumberExistsAsync("PR-0001", null))
             .ReturnsAsync(false);
 
         _paymentReceiptRepository
@@ -281,7 +283,7 @@ public class PaymentReceiptServiceTests
 
     private static PaymentReceiptCreateViewModel ValidCreateViewModel() => new()
     {
-        ReceiptNumber = "RCT-0001",
+        ReceiptNumber = "PR-0001",
         InvoiceNumber = "INV-1001",
         PaymentDate = new DateOnly(2026, 5, 13),
         AmountPaid = 1000m,
