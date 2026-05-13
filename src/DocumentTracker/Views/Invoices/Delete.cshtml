@@ -29,7 +29,7 @@
     <dd class="col-sm-9">@Model.Status</dd>
 
     <dt class="col-sm-3">Total Amount</dt>
-    <dd class="col-sm-9">@Model.TotalAmount.ToString("C")</dd>
+    <dd class="col-sm-9">@Model.TotalAmount</dd>
 </dl>
 
 <form asp-action="Delete" asp-route-id="@Model.Id" method="post">
