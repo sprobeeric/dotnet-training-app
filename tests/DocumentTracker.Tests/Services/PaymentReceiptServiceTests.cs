@@ -134,9 +134,16 @@ public class PaymentReceiptServiceTests
             .Setup(repository => repository.CreateAsync(It.IsAny<PaymentReceipt>()))
             .ReturnsAsync(11);
 
-        var result = await service.GetDetailsAsync(5);
+        var result = await service.CreateAsync(viewModel);
 
-        Assert.Null(result);
+        Assert.True(result.Succeeded);
+        Assert.Equal(11, result.Value);
+        _paymentReceiptRepository.Verify(repository => repository.CreateAsync(It.Is<PaymentReceipt>(receipt =>
+            receipt.InvoiceId == 1 &&
+            receipt.InvoiceNumber == "INV-1001" &&
+            receipt.CustomerName == "Northwind Traders" &&
+            receipt.AmountPaid == 250m &&
+            receipt.PaymentMethod == "BankTransfer")), Times.Once);
     }
 
     [Fact]
