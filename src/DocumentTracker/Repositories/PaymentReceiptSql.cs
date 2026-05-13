@@ -7,6 +7,7 @@ public static class PaymentReceiptSql
         pr.receipt_number AS ReceiptNumber,
         pr.invoice_id AS InvoiceId,
         i.invoice_number AS InvoiceNumber,
+        i.customer_name AS CustomerName,
         pr.payment_date AS PaymentDate,
         pr.amount_paid AS AmountPaid,
         pr.payment_method AS PaymentMethod,
@@ -74,10 +75,12 @@ public static class PaymentReceiptSql
             ON i.id = pr.invoice_id
         WHERE pr.deleted_at_utc IS NULL
         AND (
-            @SearchTerm IS NULL
-            OR pr.receipt_number ILIKE @SearchPattern
-            OR pr.reference_number ILIKE @SearchPattern
-            OR i.invoice_number ILIKE @SearchPattern
+            @SearchPattern::text IS NULL
+            OR pr.receipt_number ILIKE @SearchPattern::text
+            OR pr.reference_number ILIKE @SearchPattern::text
+            OR i.invoice_number ILIKE @SearchPattern::text
+            OR i.customer_name ILIKE @SearchPattern::text
+            OR pr.payment_method ILIKE @SearchPattern::text
         )
         AND (
             @DateFrom::date IS NULL
@@ -99,10 +102,12 @@ public static class PaymentReceiptSql
             ON i.id = pr.invoice_id
         WHERE pr.deleted_at_utc IS NULL
         AND (
-            @SearchTerm IS NULL
-            OR pr.receipt_number ILIKE @SearchPattern
-            OR pr.reference_number ILIKE @SearchPattern
-            OR i.invoice_number ILIKE @SearchPattern
+            @SearchPattern::text IS NULL
+            OR pr.receipt_number ILIKE @SearchPattern::text
+            OR pr.reference_number ILIKE @SearchPattern::text
+            OR i.invoice_number ILIKE @SearchPattern::text
+            OR i.customer_name ILIKE @SearchPattern::text
+            OR pr.payment_method ILIKE @SearchPattern::text
         )
         AND (
             @DateFrom::date IS NULL

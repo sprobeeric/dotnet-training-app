@@ -6,8 +6,48 @@ using Moq;
 
 namespace DocumentTracker.Tests.Controllers;
 
-public class PaymentReceiptControllerTests
+public class PaymentReceiptsControllerTests
 {
+    [Fact]
+    public async Task Details_WhenReceiptIsMissing_ReturnsNotFound()
+    {
+        var service = new Mock<IPaymentReceiptService>();
+        var createPageService = new Mock<IPaymentReceiptCreatePageService>();
+        var controller = new PaymentReceiptsController(service.Object, createPageService.Object);
+
+        service
+            .Setup(paymentReceiptService => paymentReceiptService.GetDetailsAsync(5))
+            .ReturnsAsync((PaymentReceiptDetailsViewModel?)null);
+
+        var result = await controller.Details(5);
+
+        Assert.IsType<NotFoundResult>(result);
+    }
+
+    [Fact]
+    public async Task Details_WhenReceiptExists_ReturnsDetailsView()
+    {
+        var service = new Mock<IPaymentReceiptService>();
+        var createPageService = new Mock<IPaymentReceiptCreatePageService>();
+        var controller = new PaymentReceiptsController(service.Object, createPageService.Object);
+        var details = new PaymentReceiptDetailsViewModel
+        {
+            Id = 5,
+            ReceiptNumber = "PR-1001",
+            InvoiceNumber = "INV-1001",
+            CustomerName = "Northwind Traders"
+        };
+
+        service
+            .Setup(paymentReceiptService => paymentReceiptService.GetDetailsAsync(5))
+            .ReturnsAsync(details);
+
+        var result = await controller.Details(5);
+
+        var viewResult = Assert.IsType<ViewResult>(result);
+        Assert.Same(details, viewResult.Model);
+    }
+    
     [Fact]
     public async Task Create_Get_WithInvoiceNumber_LoadsCreateViewForThatInvoice()
     {

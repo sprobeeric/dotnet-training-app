@@ -1,0 +1,86 @@
+@model PaymentReceiptDetailsViewModel
+
+@{
+    ViewData["Title"] = "Payment Receipt Details";
+    var referenceNumber = string.IsNullOrWhiteSpace(Model.ReferenceNumber) ? "None" : Model.ReferenceNumber;
+    var notes = string.IsNullOrWhiteSpace(Model.Notes) ? "None" : Model.Notes;
+}
+
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+    <div>
+        <h1 class="h3 mb-1">Payment Receipt Details</h1>
+        <div class="text-muted">Receipt @Model.ReceiptNumber</div>
+    </div>
+    <a asp-action="Index" class="btn btn-outline-secondary">Back to Payment Receipts</a>
+</div>
+
+<div class="row g-4">
+    <div class="col-lg-8">
+        <section class="card shadow-sm border-0">
+            <div class="card-body p-4">
+                <div class="d-flex flex-wrap justify-content-between align-items-start gap-3 border-bottom pb-3 mb-4">
+                    <div>
+                        <div class="text-uppercase text-muted small fw-semibold">Receipt Number</div>
+                        <div class="h4 mb-0">@Model.ReceiptNumber</div>
+                    </div>
+                    <span class="badge text-bg-success">Payment Recorded</span>
+                </div>
+
+                <div class="row g-4 align-items-start">
+                    <div class="col-md-6">
+                        <div class="text-uppercase text-muted small fw-semibold mb-1">Payment Date</div>
+                        <div class="fs-5">@Model.PaymentDate.ToString("yyyy-MM-dd")</div>
+                    </div>
+                    <div class="col-md-6 text-md-end">
+                        <div class="text-uppercase text-muted small fw-semibold mb-1">Amount Paid</div>
+                        <div class="display-6 fw-semibold">@Model.AmountPaid.ToString("N2")</div>
+                    </div>
+                </div>
+
+                <div class="row g-4 mt-1">
+                    <div class="col-md-6">
+                        <div class="text-uppercase text-muted small fw-semibold mb-1">Payment Method</div>
+                        <div>@Model.PaymentMethod</div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="text-uppercase text-muted small fw-semibold mb-1">Reference Number</div>
+                        <div>@referenceNumber</div>
+                    </div>
+                </div>
+
+                <div class="mt-4 pt-3 border-top">
+                    <div class="text-uppercase text-muted small fw-semibold mb-1">Notes</div>
+                    <div>@notes</div>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <div class="col-lg-4">
+        <section class="card shadow-sm border-0 mb-4">
+            <div class="card-body p-4">
+                <h2 class="h5 mb-3">Invoice</h2>
+                <dl class="mb-0">
+                    <dt class="text-muted small">Invoice Number</dt>
+                    <dd class="fw-semibold mb-3">@Model.InvoiceNumber</dd>
+
+                    <dt class="text-muted small">Customer</dt>
+                    <dd class="fw-semibold mb-0">@Model.CustomerName</dd>
+                </dl>
+            </div>
+        </section>
+
+        <section class="card shadow-sm border-0">
+            <div class="card-body p-4">
+                <h2 class="h6 text-muted text-uppercase mb-3">System Information</h2>
+                <dl class="mb-0 small">
+                    <dt class="text-muted">Created At UTC</dt>
+                    <dd class="mb-3">@(Model.CreatedAtUtc?.ToString("u") ?? "Not recorded")</dd>
+
+                    <dt class="text-muted">Updated At UTC</dt>
+                    <dd class="mb-0">@(Model.UpdatedAtUtc?.ToString("u") ?? "Not updated")</dd>
+                </dl>
+            </div>
+        </section>
+    </div>
+</div>

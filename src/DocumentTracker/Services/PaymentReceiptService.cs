@@ -2,8 +2,6 @@ using System.ComponentModel.DataAnnotations;
 using DocumentTracker.Models;
 using DocumentTracker.Repositories;
 using DocumentTracker.ViewModels;
-using Npgsql;
-
 namespace DocumentTracker.Services;
 
 public class PaymentReceiptService : IPaymentReceiptService
@@ -115,6 +113,7 @@ public class PaymentReceiptService : IPaymentReceiptService
         Id = paymentReceipt.Id,
         ReceiptNumber = paymentReceipt.ReceiptNumber,
         InvoiceNumber = paymentReceipt.InvoiceNumber,
+        CustomerName = paymentReceipt.CustomerName,
         PaymentDate = paymentReceipt.PaymentDate,
         AmountPaid = paymentReceipt.AmountPaid,
         PaymentMethod = paymentReceipt.PaymentMethod,
@@ -140,7 +139,9 @@ public class PaymentReceiptService : IPaymentReceiptService
     {
         Id = receipt.Id,
         ReceiptNumber = receipt.ReceiptNumber,
+        InvoiceId = receipt.InvoiceId,
         InvoiceNumber = receipt.InvoiceNumber,
+        CustomerName = receipt.CustomerName,
         PaymentDate = receipt.PaymentDate,
         AmountPaid = receipt.AmountPaid,
         PaymentMethod = receipt.PaymentMethod,

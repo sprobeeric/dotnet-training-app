@@ -20,6 +20,8 @@ public class PaymentReceiptRepository : IPaymentReceiptRepository
         var normalizedSearch = string.IsNullOrWhiteSpace(searchTerm) ? null : searchTerm.Trim();
         var normalizedPage = page < 1 ? 1 : page;
         var normalizedPageSize = pageSize < 1 ? 10 : pageSize;
+        var normalizedDateFrom = dateFrom?.ToDateTime(TimeOnly.MinValue);
+        var normalizedDateTo = dateTo?.ToDateTime(TimeOnly.MinValue);
         var offset = (normalizedPage - 1) * normalizedPageSize;
         var dateFromValue = dateFrom?.ToDateTime(TimeOnly.MinValue);
         var dateToValue = dateTo?.ToDateTime(TimeOnly.MinValue);
@@ -39,6 +41,14 @@ public class PaymentReceiptRepository : IPaymentReceiptRepository
         var orderBy = string.Equals(order, "asc", StringComparison.OrdinalIgnoreCase) ? "ASC" : "DESC";
 
         await using var connection = await _dataSource.OpenConnectionAsync();
+        var parameters = new DynamicParameters();
+        parameters.Add("SearchTerm", normalizedSearch);
+        parameters.Add("SearchPattern", normalizedSearch is null ? null : $"%{normalizedSearch}%");
+        parameters.Add("DateFrom", normalizedDateFrom);
+        parameters.Add("DateTo", normalizedDateTo);
+        parameters.Add("PageSize", normalizedPageSize);
+        parameters.Add("Offset", offset);
+
         var sql = PaymentReceiptSql.SearchPaymentReceipts(sortBy, orderBy);
         var paymentReceipts = await connection.QueryAsync<PaymentReceipt>(
             sql,
