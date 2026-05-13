@@ -4,11 +4,11 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace DocumentTracker.Controllers;
 
-public class PaymentReceiptController : Controller
+public class PaymentReceiptsController : Controller
 {
     private readonly IPaymentReceiptService _paymentReceiptService;
 
-    public PaymentReceiptController(IPaymentReceiptService paymentReceiptService)
+    public PaymentReceiptsController(IPaymentReceiptService paymentReceiptService)
     {
         _paymentReceiptService = paymentReceiptService;
     }
