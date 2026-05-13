@@ -1,5 +1,4 @@
 using Dapper;
-using DocumentTracker.Models;
 using DocumentTracker.Repositories;
 using Microsoft.Extensions.Logging;
 using Moq;
@@ -26,17 +25,15 @@ public class PaymentReceiptRepositoryIntegrationTests
         var seedSql = await File.ReadAllTextAsync(Path.Combine(root, "database", "seed.sql"));
 
         await connection.ExecuteAsync(schemaSql);
-        await connection.ExecuteAsync("DELETE FROM payment_receipt_products;");
         await connection.ExecuteAsync("DELETE FROM payment_receipts;");
-        await connection.ExecuteAsync("DELETE FROM products;");
         await connection.ExecuteAsync(seedSql);
 
         var repository = new PaymentReceiptRepository(dataSource, new Mock<ILogger<PaymentReceiptRepository>>().Object);
 
-        var result = await repository.SearchAsync(null, null, null, "payment_date_utc", "desc", 0, 0);
+        var result = await repository.SearchAsync(null, null, null, "payment_date", "desc", 0, 0);
 
         Assert.NotEmpty(result.Items);
-        Assert.Contains(result.Items, paymentReceipt => paymentReceipt.ReceiptNumber == "PR-20260512-000001");
+        Assert.Contains(result.Items, paymentReceipt => paymentReceipt.ReceiptNumber == "PR-1001");
         Assert.True(result.Total > 0);
     }
 
