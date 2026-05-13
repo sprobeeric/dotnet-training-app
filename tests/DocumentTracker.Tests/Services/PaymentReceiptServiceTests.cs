@@ -132,6 +132,37 @@ public class PaymentReceiptServiceTests
         _paymentReceiptRepository.Verify(repository => repository.CreateAsync(It.IsAny<PaymentReceipt>(), It.IsAny<IReadOnlyList<PaymentReceiptProduct>>()), Times.Exactly(2));
     }
 
+    [Fact]
+    public async Task SoftDeleteAsync_WithoutReceiptAdminRole_ReturnsRoleError()
+    {
+        var service = CreateService();
+
+        var result = await service.SoftDeleteAsync(1, DocumentRoles.DocumentAdmin);
+
+        Assert.False(result.Succeeded);
+        Assert.Contains(result.Errors, error => error.Message.Contains("ReceiptAdmin", StringComparison.Ordinal));
+        _paymentReceiptRepository.Verify(repository => repository.SoftDeleteAsync(It.IsAny<int>(), It.IsAny<DateTime>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task SoftDeleteAsync_WithReceiptAdminRole_DeletesReceipt()
+    {
+        var service = CreateService();
+
+        _paymentReceiptRepository
+            .Setup(repository => repository.GetByIdAsync(1))
+            .ReturnsAsync(new PaymentReceipt { Id = 1 });
+
+        _paymentReceiptRepository
+            .Setup(repository => repository.SoftDeleteAsync(1, It.IsAny<DateTime>()))
+            .ReturnsAsync(true);
+
+        var result = await service.SoftDeleteAsync(1, PaymentReceiptRoles.ReceiptAdmin);
+
+        Assert.True(result.Succeeded);
+        _paymentReceiptRepository.Verify(repository => repository.SoftDeleteAsync(1, It.IsAny<DateTime>()), Times.Once);
+    }
+
     private PaymentReceiptService CreateService() => new(
         _paymentReceiptRepository.Object,
         _numberGenerator.Object,

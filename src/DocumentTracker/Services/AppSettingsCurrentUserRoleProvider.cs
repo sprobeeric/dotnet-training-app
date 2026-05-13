@@ -15,6 +15,11 @@ public class AppSettingsCurrentUserRoleProvider : ICurrentUserRoleProvider
     {
         var user = _httpContextAccessor.HttpContext?.User;
 
+        if (user?.IsInRole(PaymentReceiptRoles.ReceiptAdmin) == true)
+        {
+            return PaymentReceiptRoles.ReceiptAdmin;
+        }
+
         if (user?.IsInRole(DocumentRoles.DocumentAdmin) == true)
         {
             return DocumentRoles.DocumentAdmin;

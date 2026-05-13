@@ -132,9 +132,9 @@ public class PaymentReceiptService : IPaymentReceiptService
 
     public async Task<ServiceResult> SoftDeleteAsync(int id, string? currentRole)
     {
-        if (!string.Equals(currentRole, DocumentRoles.DocumentAdmin, StringComparison.Ordinal))
+        if (!string.Equals(currentRole, PaymentReceiptRoles.ReceiptAdmin, StringComparison.Ordinal))
         {
-            return ServiceResult.Failure(string.Empty, "Only users in the DocumentAdmin role can delete payment receipts.");
+            return ServiceResult.Failure(string.Empty, "Only users in the ReceiptAdmin role can delete payment receipts.");
         }
 
         var existing = await _paymentReceiptRepository.GetByIdAsync(id);
