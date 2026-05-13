@@ -27,4 +27,13 @@ public class InvoiceSqlTests
         Assert.Contains("LIMIT @PageSize", searchInvoicesPageSql);
         Assert.Contains("OFFSET @Offset", searchInvoicesPageSql);
     }
+
+    [Fact]
+    public void SoftDeleteInvoice_UsesParametersAndGuardsAgainstDoubleDelete()
+    {
+        Assert.Contains("@Id", InvoiceSql.SoftDeleteInvoice);
+        Assert.Contains("@DeletedAtUtc", InvoiceSql.SoftDeleteInvoice);
+        Assert.Contains("deleted_at_utc IS NULL", InvoiceSql.SoftDeleteInvoice);
+        Assert.DoesNotContain("string.Concat", InvoiceSql.SoftDeleteInvoice);
+    }
 }
