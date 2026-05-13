@@ -6,13 +6,6 @@ namespace DocumentTracker.Services;
 
 public class PaymentReceiptService : IPaymentReceiptService
 {
-<<<<<<< HEAD
-    private readonly IPaymentReceiptRepository _paymentReceiptRepository;
-
-    public PaymentReceiptService(IPaymentReceiptRepository paymentReceiptRepository)
-    {
-        _paymentReceiptRepository = paymentReceiptRepository;
-=======
     private static readonly HashSet<string> AllowedPaymentMethods =
     [
         "Cash",
@@ -34,7 +27,6 @@ public class PaymentReceiptService : IPaymentReceiptService
         _paymentReceiptRepository = paymentReceiptRepository;
         _invoiceLookupRepository = invoiceLookupRepository;
         _logger = logger;
->>>>>>> develop-payment-receipt
     }
 
     public async Task<PaginatedResult<PaymentReceiptListItemViewModel>> SearchAsync(string? searchTerm, DateOnly? dateFrom, DateOnly? dateTo, string sort, string order, int page, int pageSize)
@@ -48,8 +40,6 @@ public class PaymentReceiptService : IPaymentReceiptService
         };
     }
 
-<<<<<<< HEAD
-=======
     public async Task<ServiceResult<int>> CreateAsync(PaymentReceiptCreateViewModel viewModel)
     {
         viewModel.ReceiptNumber = viewModel.ReceiptNumber.Trim();
@@ -118,7 +108,6 @@ public class PaymentReceiptService : IPaymentReceiptService
             : ToDetails(receipt);
     }
 
->>>>>>> develop-payment-receipt
     private static PaymentReceiptListItemViewModel ToListItem(PaymentReceipt paymentReceipt) => new()
     {
         Id = paymentReceipt.Id,
@@ -134,13 +123,6 @@ public class PaymentReceiptService : IPaymentReceiptService
 
     private static PaymentReceiptInvoiceSummaryViewModel ToInvoiceSummary(InvoicePaymentSummary summary) => new()
     {
-<<<<<<< HEAD
-        var receipt = await _paymentReceiptRepository.GetByIdAsync(id);
-        return receipt is null || receipt.DeletedAtUtc is not null
-            ? null
-            : ToDetails(receipt);
-    }
-=======
         InvoiceId = summary.InvoiceId,
         InvoiceNumber = summary.InvoiceNumber,
         CustomerName = summary.CustomerName,
@@ -152,19 +134,14 @@ public class PaymentReceiptService : IPaymentReceiptService
         RemainingBalance = summary.RemainingBalance,
         Notes = summary.Notes
     };
->>>>>>> develop-payment-receipt
 
     private static PaymentReceiptDetailsViewModel ToDetails(PaymentReceipt receipt) => new()
     {
         Id = receipt.Id,
         ReceiptNumber = receipt.ReceiptNumber,
-<<<<<<< HEAD
         InvoiceId = receipt.InvoiceId,
         InvoiceNumber = receipt.InvoiceNumber,
         CustomerName = receipt.CustomerName,
-=======
-        InvoiceNumber = receipt.InvoiceNumber,
->>>>>>> develop-payment-receipt
         PaymentDate = receipt.PaymentDate,
         AmountPaid = receipt.AmountPaid,
         PaymentMethod = receipt.PaymentMethod,
@@ -173,8 +150,6 @@ public class PaymentReceiptService : IPaymentReceiptService
         CreatedAtUtc = receipt.CreatedAtUtc,
         UpdatedAtUtc = receipt.UpdatedAtUtc
     };
-<<<<<<< HEAD
-=======
 
     private async Task PopulateInvoiceSummaryAsync(PaymentReceiptCreateViewModel viewModel)
     {
@@ -234,5 +209,4 @@ public class PaymentReceiptService : IPaymentReceiptService
             result.AddError(key, validationResult.ErrorMessage ?? "The value is invalid.");
         }
     }
->>>>>>> develop-payment-receipt
 }

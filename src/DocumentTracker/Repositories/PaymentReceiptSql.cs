@@ -124,11 +124,6 @@ public static class PaymentReceiptSql
         FROM payment_receipts pr
         INNER JOIN invoices i
             ON i.id = pr.invoice_id
-<<<<<<< HEAD
-        WHERE pr.id = @Id
-          AND pr.deleted_at_utc IS NULL;
-=======
         WHERE pr.id = @Id;
->>>>>>> develop-payment-receipt
         """;
 }
