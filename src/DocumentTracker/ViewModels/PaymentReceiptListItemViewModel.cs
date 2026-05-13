@@ -4,9 +4,10 @@ public class PaymentReceiptListItemViewModel
 {
     public int Id { get; set; }
     public string ReceiptNumber { get; set; } = string.Empty;
-    public string ReferenceNumber { get; set; } = string.Empty;
-    public DateTime PaymentDateUtc { get; set; }
-    public decimal TotalAmount { get; set; }
-    public decimal Received { get; set; }
-    public decimal ChangeAmount { get; set; }
+    public string InvoiceNumber { get; set; } = string.Empty;
+    public DateOnly PaymentDate { get; set; }
+    public decimal AmountPaid { get; set; }
+    public string PaymentMethod { get; set; } = string.Empty;
+    public string? ReferenceNumber { get; set; }
+    public string? Notes { get; set; }
 }

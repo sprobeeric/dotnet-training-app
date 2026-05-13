@@ -23,7 +23,7 @@
 <form asp-action="Index" method="get" class="row g-2 align-items-end mb-4">
     <div class="col-md-4 col-lg-3">
         <label asp-for="SearchTerm" class="form-label fw-bold">Search:</label>
-        <input asp-for="SearchTerm" class="form-control" placeholder="Receipt or reference number" />
+        <input asp-for="SearchTerm" class="form-control" placeholder="Receipt, invoice or reference number" />
     </div>
     <div class="col-md-3 col-lg-2">
         <label asp-for="DateFrom" class="form-label fw-bold">Date Range:</label>
@@ -71,11 +71,11 @@ else
                            asp-route-dateTo="@Model.DateTo?.ToString("yyyy-MM-dd")"
                            asp-route-page="@Model.Page"
                            asp-route-pageSize="@Model.PageSize"
-                           asp-route-sort="reference_number"
-                           asp-route-order="@(Model.Sort == "reference_number" && Model.Order == "asc" ? "desc" : "asc")"
+                           asp-route-sort="invoice_number"
+                           asp-route-order="@(Model.Sort == "invoice_number" && Model.Order == "asc" ? "desc" : "asc")"
                            class="text-decoration-none text-dark">
-                            Reference Number
-                            <span class="ms-1">@SortIcon("reference_number")</span>
+                            Invoice Number
+                            <span class="ms-1">@SortIcon("invoice_number")</span>
                         </a>
                     </th>
                     <th>
@@ -85,11 +85,11 @@ else
                            asp-route-dateTo="@Model.DateTo?.ToString("yyyy-MM-dd")"
                            asp-route-page="@Model.Page"
                            asp-route-pageSize="@Model.PageSize"
-                           asp-route-sort="payment_date_utc"
-                           asp-route-order="@(Model.Sort == "payment_date_utc" && Model.Order == "asc" ? "desc" : "asc")"
+                           asp-route-sort="payment_date"
+                           asp-route-order="@(Model.Sort == "payment_date" && Model.Order == "asc" ? "desc" : "asc")"
                            class="text-decoration-none text-dark">
                             Date
-                            <span class="ms-1">@SortIcon("payment_date_utc")</span>
+                            <span class="ms-1">@SortIcon("payment_date")</span>
                         </a>
                     </th>
                     <th class="text-end">
@@ -99,11 +99,11 @@ else
                            asp-route-dateTo="@Model.DateTo?.ToString("yyyy-MM-dd")"
                            asp-route-page="@Model.Page"
                            asp-route-pageSize="@Model.PageSize"
-                           asp-route-sort="total_amount"
-                           asp-route-order="@(Model.Sort == "total_amount" && Model.Order == "asc" ? "desc" : "asc")"
+                           asp-route-sort="amount_paid"
+                           asp-route-order="@(Model.Sort == "amount_paid" && Model.Order == "asc" ? "desc" : "asc")"
                            class="text-decoration-none text-dark">
                             Total
-                            <span class="ms-1">@SortIcon("total_amount")</span>
+                            <span class="ms-1">@SortIcon("amount_paid")</span>
                         </a>
                     </th>
                     <th class="text-end">
@@ -113,11 +113,25 @@ else
                            asp-route-dateTo="@Model.DateTo?.ToString("yyyy-MM-dd")"
                            asp-route-page="@Model.Page"
                            asp-route-pageSize="@Model.PageSize"
-                           asp-route-sort="received"
-                           asp-route-order="@(Model.Sort == "received" && Model.Order == "asc" ? "desc" : "asc")"
+                           asp-route-sort="payment_method"
+                           asp-route-order="@(Model.Sort == "payment_method" && Model.Order == "asc" ? "desc" : "asc")"
                            class="text-decoration-none text-dark">
-                            Received
-                            <span class="ms-1">@SortIcon("received")</span>
+                            Payment Method
+                            <span class="ms-1">@SortIcon("payment_method")</span>
+                        </a>
+                    </th>
+                    <th>
+                        <a asp-action="Index"
+                           asp-route-searchTerm="@Model.SearchTerm"
+                           asp-route-dateFrom="@Model.DateFrom?.ToString("yyyy-MM-dd")"
+                           asp-route-dateTo="@Model.DateTo?.ToString("yyyy-MM-dd")"
+                           asp-route-page="@Model.Page"
+                           asp-route-pageSize="@Model.PageSize"
+                           asp-route-sort="reference_number"
+                           asp-route-order="@(Model.Sort == "reference_number" && Model.Order == "asc" ? "desc" : "asc")"
+                           class="text-decoration-none text-dark">
+                            Reference Number
+                            <span class="ms-1">@SortIcon("reference_number")</span>
                         </a>
                     </th>
                     <th class="text-end">
@@ -127,11 +141,11 @@ else
                            asp-route-dateTo="@Model.DateTo?.ToString("yyyy-MM-dd")"
                            asp-route-page="@Model.Page"
                            asp-route-pageSize="@Model.PageSize"
-                           asp-route-sort="change_amount"
-                           asp-route-order="@(Model.Sort == "change_amount" && Model.Order == "asc" ? "desc" : "asc")"
+                           asp-route-sort="notes"
+                           asp-route-order="@(Model.Sort == "notes" && Model.Order == "asc" ? "desc" : "asc")"
                            class="text-decoration-none text-dark">
-                            Change
-                            <span class="ms-1">@SortIcon("change_amount")</span>
+                            Notes
+                            <span class="ms-1">@SortIcon("notes")</span>
                         </a>
                     </th>
                     <th class="text-end">Actions</th>
@@ -142,11 +156,12 @@ else
             {
                 <tr>
                     <td>@paymentReceipt.ReceiptNumber</td>
+                    <td>@paymentReceipt.InvoiceNumber</td>
+                    <td>@paymentReceipt.PaymentDate.ToString("yyyy-MM-dd")</td>
+                    <td class="text-end">@paymentReceipt.AmountPaid.ToString("N2")</td>
+                    <td>@paymentReceipt.PaymentMethod</td>
                     <td>@paymentReceipt.ReferenceNumber</td>
-                    <td>@paymentReceipt.PaymentDateUtc.ToString("u")</td>
-                    <td class="text-end">@paymentReceipt.TotalAmount.ToString("N2")</td>
-                    <td class="text-end">@paymentReceipt.Received.ToString("N2")</td>
-                    <td class="text-end">@paymentReceipt.ChangeAmount.ToString("N2")</td>
+                    <td>@paymentReceipt.Notes</td>
                     <td class="text-end text-nowrap">
                         <a asp-action="Details" asp-route-id="@paymentReceipt.Id" class="btn btn-sm btn-outline-secondary">Details</a>
                         <a asp-action="Delete" asp-route-id="@paymentReceipt.Id" class="btn btn-sm btn-outline-danger">Delete</a>

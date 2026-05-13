@@ -13,26 +13,12 @@ public class PaymentReceiptController : Controller
         _paymentReceiptService = paymentReceiptService;
     }
 
-    public async Task<IActionResult> Index(
-        string? searchTerm,
-        DateTime? dateFrom,
-        DateTime? dateTo,
-        string sort = "payment_date_utc",
-        string order = "desc",
-        int page = 1,
-        int pageSize = 10)
+    public async Task<IActionResult> Index(string? searchTerm, DateOnly? dateFrom, DateOnly? dateTo, string sort = "payment_date", string order = "desc", int page = 1, int pageSize = 10)
     {
         var normalizedPage = page < 1 ? 1 : page;
         var normalizedPageSize = pageSize < 1 ? 10 : pageSize;
 
-        var paymentReceipts = await _paymentReceiptService.SearchAsync(
-            searchTerm,
-            dateFrom,
-            dateTo,
-            sort,
-            order,
-            normalizedPage,
-            normalizedPageSize);
+        var paymentReceipts = await _paymentReceiptService.SearchAsync(searchTerm, dateFrom, dateTo, sort, order, normalizedPage, normalizedPageSize);
 
         return View(new PaymentReceiptSearchViewModel
         {
@@ -46,12 +32,6 @@ public class PaymentReceiptController : Controller
             Total = paymentReceipts.Total,
             PaymentReceipts = paymentReceipts.Items
         });
-    }
-
-    public async Task<IActionResult> Details(int id)
-    {
-        var receipt = await _paymentReceiptService.GetDetailsAsync(id);
-        return receipt is null ? NotFound() : View(receipt);
     }
     
     public async Task<IActionResult> Create()
@@ -80,6 +60,12 @@ public class PaymentReceiptController : Controller
 
         TempData["SuccessMessage"] = "Payment receipt created.";
         return RedirectToAction(nameof(Details), new { id = result.Value });
+    }
+
+    public async Task<IActionResult> Details(int id)
+    {
+        var receipt = await _paymentReceiptService.GetDetailsAsync(id);
+        return receipt is null ? NotFound() : View(receipt);
     }
 
     private static void MergeSubmittedQuantities(PaymentReceiptCreateViewModel target, PaymentReceiptCreateViewModel source)

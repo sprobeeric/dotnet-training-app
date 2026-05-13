@@ -8,7 +8,6 @@ namespace DocumentTracker.Services;
 public class PaymentReceiptService : IPaymentReceiptService
 {
     private const int MaxCreateAttempts = 3;
-
     private readonly IPaymentReceiptRepository _paymentReceiptRepository;
     private readonly IPaymentReceiptNumberGenerator _numberGenerator;
     private readonly IProductRepository _productRepository;
@@ -29,12 +28,15 @@ public class PaymentReceiptService : IPaymentReceiptService
         _logger = logger;
     }
 
-    public async Task<PaymentReceiptDetailsViewModel?> GetDetailsAsync(int id)
+    public async Task<PaginatedResult<PaymentReceiptListItemViewModel>> SearchAsync(string? searchTerm, DateOnly? dateFrom, DateOnly? dateTo, string sort, string order, int page, int pageSize)
     {
-        var receipt = await _paymentReceiptRepository.GetByIdAsync(id);
-        return receipt is null || receipt.DeletedAtUtc is not null
-            ? null
-            : ToDetails(receipt);
+        var paymentReceipts = await _paymentReceiptRepository.SearchAsync(searchTerm, dateFrom, dateTo, sort, order, page, pageSize);
+
+        return new PaginatedResult<PaymentReceiptListItemViewModel>
+        {
+            Items = paymentReceipts.Items.Select(ToListItem).ToList(),
+            Total = paymentReceipts.Total
+        };
     }
 
     public async Task<PaymentReceiptCreateViewModel> GetCreateAsync()
@@ -103,29 +105,24 @@ public class PaymentReceiptService : IPaymentReceiptService
         return ServiceResult<int>.Failure(string.Empty, "The payment receipt could not be created. Please submit the purchase again.");
     }
 
-    public async Task<PaginatedResult<PaymentReceiptListItemViewModel>> SearchAsync(
-        string? searchTerm,
-        DateTime? dateFrom,
-        DateTime? dateTo,
-        string sort,
-        string order,
-        int page,
-        int pageSize)
+    private static PaymentReceiptListItemViewModel ToListItem(PaymentReceipt paymentReceipt) => new()
     {
-        var paymentReceipts = await _paymentReceiptRepository.SearchAsync(
-            searchTerm,
-            dateFrom,
-            dateTo,
-            sort,
-            order,
-            page,
-            pageSize);
+        Id = paymentReceipt.Id,
+        ReceiptNumber = paymentReceipt.ReceiptNumber,
+        InvoiceNumber = paymentReceipt.InvoiceNumber,
+        PaymentDate = paymentReceipt.PaymentDate,
+        AmountPaid = paymentReceipt.AmountPaid,
+        PaymentMethod = paymentReceipt.PaymentMethod,
+        ReferenceNumber = paymentReceipt.ReferenceNumber,
+        Notes = paymentReceipt.Notes
+    };
 
-        return new PaginatedResult<PaymentReceiptListItemViewModel>
-        {
-            Items = paymentReceipts.Items.Select(ToListItem).ToList(),
-            Total = paymentReceipts.Total
-        };
+    public async Task<PaymentReceiptDetailsViewModel?> GetDetailsAsync(int id)
+    {
+        var receipt = await _paymentReceiptRepository.GetByIdAsync(id);
+        return receipt is null || receipt.DeletedAtUtc is not null
+            ? null
+            : ToDetails(receipt);
     }
 
     private async Task<List<PaymentReceiptProductInputViewModel>> BuildProductInputsAsync()
@@ -153,17 +150,6 @@ public class PaymentReceiptService : IPaymentReceiptService
             Quantity = submittedQuantities.TryGetValue(product.Id, out var quantity) ? quantity : 0
         }).ToList();
     }
-
-    private static PaymentReceiptListItemViewModel ToListItem(PaymentReceipt paymentReceipt) => new()
-    {
-        Id = paymentReceipt.Id,
-        ReceiptNumber = paymentReceipt.ReceiptNumber,
-        ReferenceNumber = paymentReceipt.ReferenceNumber,
-        PaymentDateUtc = paymentReceipt.PaymentDateUtc,
-        TotalAmount = paymentReceipt.TotalAmount,
-        Received = paymentReceipt.Received,
-        ChangeAmount = paymentReceipt.ChangeAmount
-    };
 
     private static PaymentReceiptDetailsViewModel ToDetails(PaymentReceipt receipt) => new()
     {

@@ -3,9 +3,9 @@ namespace DocumentTracker.ViewModels;
 public class PaymentReceiptSearchViewModel
 {
     public string? SearchTerm { get; set; }
-    public DateTime? DateFrom { get; set; }
-    public DateTime? DateTo { get; set; }
-    public string Sort { get; set; } = "payment_date_utc";
+    public DateOnly? DateFrom { get; set; }
+    public DateOnly? DateTo { get; set; }
+    public string Sort { get; set; } = "payment_date";
     public string Order { get; set; } = "desc";
     public int Page { get; set; } = 1;
     public int PageSize { get; set; } = 10;
