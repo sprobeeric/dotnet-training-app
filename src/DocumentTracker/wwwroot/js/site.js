@@ -1,117 +1,63 @@
 ﻿// Please see documentation at https://learn.microsoft.com/aspnet/core/client-side/bundling-and-minification
 // for details on configuring this project to bundle and minify static web assets.
 
-const initializePaymentReceiptForm = () => {
-    const form = document.querySelector("[data-purchase-form]");
+const initializePaymentReceiptCreate = () => {
+    const form = document.querySelector("[data-payment-receipt-create-form]");
+    const lookupButton = document.querySelector("[data-invoice-lookup-button]");
+    const amountPaidInput = document.querySelector("[data-amount-paid-input]");
+    const paymentSummary = document.querySelector("[data-payment-summary]");
+    const currentPaymentTarget = document.querySelector("[data-current-payment]");
+    const balanceAfterPaymentTarget = document.querySelector("[data-balance-after-payment]");
+
     if (!form) {
         return;
     }
 
-    const productCards = Array.from(form.querySelectorAll("[data-product-card]"));
-    const quantityInputs = Array.from(form.querySelectorAll("[data-quantity-input]"));
-    const searchInput = form.querySelector("[data-product-search]");
-    const receivedInput = form.querySelector("[data-received-input]");
-    const selectedItemTargets = Array.from(form.querySelectorAll("[data-selected-items], [data-selected-items-summary]"));
-    const subtotalTarget = form.querySelector("[data-subtotal]");
-    const changeTarget = form.querySelector("[data-change-preview]");
-    const summaryLinesTarget = form.querySelector("[data-summary-lines]");
-    const summaryEmptyTarget = form.querySelector("[data-summary-empty]");
+    lookupButton?.addEventListener("click", () => {
+        const lookupUrl = form.dataset.lookupUrl || window.location.pathname;
+        const invoiceNumberInput = form.querySelector("#InvoiceNumber");
 
-    const updateSummary = () => {
-        let selectedItems = 0;
-        let subtotal = 0;
-        const selectedProducts = [];
-
-        quantityInputs.forEach((input) => {
-            const quantity = Number(input.value) || 0;
-            const unitPrice = Number(input.dataset.unitPrice) || 0;
-            const card = input.closest("[data-product-card]");
-
-            if (card) {
-                card.classList.toggle("is-selected", quantity > 0);
-            }
-
-            if (quantity > 0) {
-                selectedItems += quantity;
-                subtotal += quantity * unitPrice;
-                selectedProducts.push({
-                    name: card?.querySelector(".product-card__name")?.textContent || "",
-                    quantity,
-                    unitPrice,
-                    lineTotal: quantity * unitPrice
-                });
-            }
-        });
-
-        selectedItemTargets.forEach((target) => {
-            target.textContent = String(selectedItems);
-        });
-
-        if (subtotalTarget) {
-            subtotalTarget.textContent = subtotal.toFixed(2);
+        if (!(invoiceNumberInput instanceof HTMLInputElement)) {
+            return;
         }
 
-        if (changeTarget && receivedInput) {
-            const received = Number(receivedInput.value) || 0;
-            changeTarget.textContent = (received - subtotal).toFixed(2);
+        const invoiceNumber = invoiceNumberInput.value.trim();
+        const query = new URLSearchParams();
+
+        if (invoiceNumber.length > 0) {
+            query.set("invoiceNumber", invoiceNumber);
         }
 
-        if (summaryLinesTarget && summaryEmptyTarget) {
-            if (selectedProducts.length === 0) {
-                summaryLinesTarget.replaceChildren();
-                summaryEmptyTarget.hidden = false;
-            } else {
-                summaryEmptyTarget.hidden = true;
-                summaryLinesTarget.replaceChildren(
-                    ...selectedProducts.map((product) => {
-                        const line = document.createElement("div");
-                        line.className = "purchase-summary-line";
-
-                        const details = document.createElement("div");
-
-                        const name = document.createElement("p");
-                        name.className = "purchase-summary-line__name";
-                        name.textContent = product.name;
-
-                        const meta = document.createElement("p");
-                        meta.className = "purchase-summary-line__meta";
-                        meta.textContent = `${product.quantity} x ${product.unitPrice.toFixed(2)}`;
-
-                        const total = document.createElement("div");
-                        total.className = "purchase-summary-line__total";
-                        total.textContent = product.lineTotal.toFixed(2);
-
-                        details.append(name, meta);
-                        line.append(details, total);
-                        return line;
-                    })
-                );
-            }
-        }
-    };
-
-    const filterProducts = () => {
-        const query = (searchInput?.value || "").trim().toLowerCase();
-
-        productCards.forEach((card) => {
-            const productName = card.dataset.productName || "";
-            card.classList.toggle("is-hidden", query.length > 0 && !productName.includes(query));
-        });
-    };
-
-    quantityInputs.forEach((input) => {
-        input.addEventListener("input", updateSummary);
+        window.location.assign(query.size > 0 ? `${lookupUrl}?${query.toString()}` : lookupUrl);
     });
 
-    receivedInput?.addEventListener("input", updateSummary);
-    searchInput?.addEventListener("input", filterProducts);
+    const formatMoney = (value) => value.toLocaleString(undefined, {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+    });
 
-    filterProducts();
-    updateSummary();
+    const updatePaymentSummary = () => {
+        if (!paymentSummary || !currentPaymentTarget || !balanceAfterPaymentTarget || !(amountPaidInput instanceof HTMLInputElement)) {
+            return;
+        }
+
+        const remainingBalance = Number(paymentSummary.dataset.remainingBalance || "0");
+        const currentPayment = Number(amountPaidInput.value || "0");
+        const balanceAfterPayment = remainingBalance - currentPayment;
+
+        currentPaymentTarget.textContent = formatMoney(currentPayment);
+        balanceAfterPaymentTarget.textContent = formatMoney(balanceAfterPayment);
+
+        balanceAfterPaymentTarget.classList.remove("text-danger", "text-success");
+        balanceAfterPaymentTarget.classList.add(balanceAfterPayment < 0 ? "text-danger" : "text-success");
+    };
+
+    amountPaidInput?.addEventListener("input", updatePaymentSummary);
+    updatePaymentSummary();
 };
 
 if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", initializePaymentReceiptForm);
+    document.addEventListener("DOMContentLoaded", initializePaymentReceiptCreate);
 } else {
-    initializePaymentReceiptForm();
+    initializePaymentReceiptCreate();
 }

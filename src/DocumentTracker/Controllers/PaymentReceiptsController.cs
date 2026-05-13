@@ -7,10 +7,14 @@ namespace DocumentTracker.Controllers;
 public class PaymentReceiptsController : Controller
 {
     private readonly IPaymentReceiptService _paymentReceiptService;
+    private readonly IPaymentReceiptCreatePageService _createPageService;
 
-    public PaymentReceiptsController(IPaymentReceiptService paymentReceiptService)
+    public PaymentReceiptsController(
+        IPaymentReceiptService paymentReceiptService,
+        IPaymentReceiptCreatePageService createPageService)
     {
         _paymentReceiptService = paymentReceiptService;
+        _createPageService = createPageService;
     }
 
     public async Task<IActionResult> Index(string? searchTerm, DateOnly? dateFrom, DateOnly? dateTo, string sort = "payment_date", string order = "desc", int page = 1, int pageSize = 10)
@@ -34,9 +38,9 @@ public class PaymentReceiptsController : Controller
         });
     }
     
-    public async Task<IActionResult> Create()
+    public async Task<IActionResult> Create(string? invoiceNumber)
     {
-        return View(await _paymentReceiptService.GetCreateAsync());
+        return View(await _createPageService.BuildAsync(invoiceNumber));
     }
 
     [HttpPost]
@@ -45,16 +49,15 @@ public class PaymentReceiptsController : Controller
     {
         if (!ModelState.IsValid)
         {
-            var createViewModel = await _paymentReceiptService.GetCreateAsync();
-            createViewModel.Received = viewModel.Received;
-            MergeSubmittedQuantities(createViewModel, viewModel);
-            return View(createViewModel);
+            await _createPageService.PopulateInvoiceSummaryAsync(viewModel);
+            return View(viewModel);
         }
 
         var result = await _paymentReceiptService.CreateAsync(viewModel);
         if (!result.Succeeded)
         {
             AddServiceErrors(result);
+            await _createPageService.PopulateInvoiceSummaryAsync(viewModel);
             return View(viewModel);
         }
 
@@ -66,19 +69,6 @@ public class PaymentReceiptsController : Controller
     {
         var receipt = await _paymentReceiptService.GetDetailsAsync(id);
         return receipt is null ? NotFound() : View(receipt);
-    }
-
-    private static void MergeSubmittedQuantities(PaymentReceiptCreateViewModel target, PaymentReceiptCreateViewModel source)
-    {
-        var quantitiesByProductId = source.Products.ToDictionary(product => product.ProductId, product => product.Quantity);
-
-        foreach (var product in target.Products)
-        {
-            if (quantitiesByProductId.TryGetValue(product.ProductId, out var quantity))
-            {
-                product.Quantity = quantity;
-            }
-        }
     }
 
     private void AddServiceErrors(ServiceResult result)
