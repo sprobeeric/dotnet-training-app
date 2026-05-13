@@ -21,6 +21,8 @@ public class PaymentReceiptRepository : IPaymentReceiptRepository
         var normalizedPage = page < 1 ? 1 : page;
         var normalizedPageSize = pageSize < 1 ? 10 : pageSize;
         var offset = (normalizedPage - 1) * normalizedPageSize;
+        var dateFromValue = dateFrom?.ToDateTime(TimeOnly.MinValue);
+        var dateToValue = dateTo?.ToDateTime(TimeOnly.MinValue);
 
         var allowedSorts = new Dictionary<string, string>
         {
@@ -44,8 +46,8 @@ public class PaymentReceiptRepository : IPaymentReceiptRepository
             {
                 SearchTerm = normalizedSearch,
                 SearchPattern = normalizedSearch is null ? null : $"%{normalizedSearch}%",
-                DateFrom = dateFrom,
-                DateTo = dateTo,
+                DateFrom = dateFromValue,
+                DateTo = dateToValue,
                 PageSize = normalizedPageSize,
                 Offset = offset
             });
@@ -56,8 +58,8 @@ public class PaymentReceiptRepository : IPaymentReceiptRepository
             {
                 SearchTerm = normalizedSearch,
                 SearchPattern = normalizedSearch is null ? null : $"%{normalizedSearch}%",
-                DateFrom = dateFrom,
-                DateTo = dateTo
+                DateFrom = dateFromValue,
+                DateTo = dateToValue
             });
 
         return new PaginatedResult<PaymentReceipt>
@@ -71,38 +73,36 @@ public class PaymentReceiptRepository : IPaymentReceiptRepository
     {
         await using var connection = await _dataSource.OpenConnectionAsync();
 
-        var receipt = await connection.QuerySingleOrDefaultAsync<PaymentReceipt>(
+        return await connection.QuerySingleOrDefaultAsync<PaymentReceipt>(
             PaymentReceiptSql.GetById,
             new { Id = id });
-
-        if (receipt is null)
-        {
-            return null;
-        }
-
-        var products = await connection.QueryAsync<PaymentReceiptProduct, Product, PaymentReceiptProduct>(
-            PaymentReceiptSql.GetProductsByReceiptId,
-            (receiptProduct, product) =>
-            {
-                receiptProduct.Product = product;
-                return receiptProduct;
-            },
-            new { PaymentReceiptId = id },
-            splitOn: "Id");
-
-        receipt.PaymentReceiptProducts = products.AsList();
-        return receipt;
     }
 
-    public async Task<int> GetNextReceiptSequenceAsync(DateOnly paymentDate)
+    public async Task<bool> ReceiptNumberExistsAsync(string receiptNumber, int? excludeId = null)
     {
         await using var connection = await _dataSource.OpenConnectionAsync();
-        return await connection.ExecuteScalarAsync<int>(
-            PaymentReceiptSql.GetNextReceiptSequence,
-            new { ReceiptPrefix = $"PR-{paymentDate:yyyyMMdd}" });
+        return await connection.ExecuteScalarAsync<bool>(
+            PaymentReceiptSql.ReceiptNumberExists,
+            new { ReceiptNumber = receiptNumber, ExcludeId = excludeId });
     }
 
-    public async Task<int> CreateAsync(PaymentReceipt paymentReceipt, IReadOnlyList<PaymentReceiptProduct> products)
+    public async Task<bool> ReferenceNumberExistsAsync(string referenceNumber, int? excludeId = null)
+    {
+        await using var connection = await _dataSource.OpenConnectionAsync();
+        return await connection.ExecuteScalarAsync<bool>(
+            PaymentReceiptSql.ReferenceNumberExists,
+            new { ReferenceNumber = referenceNumber, ExcludeId = excludeId });
+    }
+
+    public async Task<bool> InvoiceExistsAndPendingAsync(int invoiceId)
+    {
+        await using var connection = await _dataSource.OpenConnectionAsync();
+        return await connection.ExecuteScalarAsync<bool>(
+            PaymentReceiptSql.InvoiceExistsAndPending,
+            new { InvoiceId = invoiceId });
+    }
+
+    public async Task<int> CreateAsync(PaymentReceipt paymentReceipt)
     {
         await using var connection = await _dataSource.OpenConnectionAsync();
         await using var transaction = await connection.BeginTransactionAsync();
@@ -112,32 +112,30 @@ public class PaymentReceiptRepository : IPaymentReceiptRepository
             new
             {
                 paymentReceipt.ReceiptNumber,
-                paymentReceipt.PaymentDateUtc,
+                paymentReceipt.InvoiceId,
+                PaymentDate = paymentReceipt.PaymentDate.ToDateTime(TimeOnly.MinValue),
+                paymentReceipt.AmountPaid,
+                paymentReceipt.PaymentMethod,
                 paymentReceipt.ReferenceNumber,
-                paymentReceipt.TotalAmount,
-                paymentReceipt.Received,
-                paymentReceipt.ChangeAmount,
+                paymentReceipt.Notes,
                 paymentReceipt.CreatedAtUtc,
                 paymentReceipt.UpdatedAtUtc
             },
             transaction);
 
-        foreach (var product in products)
-        {
-            await connection.ExecuteAsync(
-                PaymentReceiptSql.InsertPaymentReceiptProduct,
-                new
-                {
-                    PaymentReceiptId = id,
-                    product.ProductId,
-                    product.Quantity,
-                    product.UnitPrice,
-                    product.LineTotal
-                },
-                transaction);
-        }
+        await connection.ExecuteAsync(
+            PaymentReceiptSql.UpdateInvoiceStatusToPaid,
+            new
+            {
+                PaymentReceiptId = id,
+                paymentReceipt.InvoiceId,
+                paymentReceipt.AmountPaid,
+                UpdatedAtUtc = paymentReceipt.UpdatedAtUtc
+            },
+            transaction);
 
         await transaction.CommitAsync();
+
         _logger.LogInformation("Created payment receipt with id {PaymentReceiptId}.", id);
         return id;
     }
