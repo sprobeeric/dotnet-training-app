@@ -4,6 +4,8 @@ using Npgsql;
 
 var builder = WebApplication.CreateBuilder(args);
 
+DapperDateOnlyTypeHandler.Register();
+
 builder.Services.AddControllersWithViews();
 builder.Services.AddHttpContextAccessor();
 

@@ -13,6 +13,42 @@ public class InvoiceService : IInvoiceService
         _repository = repository;
     }
 
+    public async Task<PagedResult<InvoiceListItemViewModel>> SearchAsync(
+        string? searchTerm,
+        DateOnly? invoiceDateFrom,
+        DateOnly? invoiceDateTo,
+        string? sortBy,
+        string? sortDirection,
+        int pageNumber,
+        int pageSize)
+    {
+        var searchResult = await _repository.SearchAsync(
+            searchTerm,
+            invoiceDateFrom,
+            invoiceDateTo,
+            sortBy,
+            sortDirection,
+            pageNumber,
+            pageSize);
+        return new PagedResult<InvoiceListItemViewModel>
+        {
+            Items = searchResult.Items.Select(ToListItem).ToList(),
+            TotalCount = searchResult.TotalCount
+        };
+    }
+
+    private static InvoiceListItemViewModel ToListItem(Invoice invoice) => new()
+    {
+        Id = invoice.Id,
+        InvoiceNumber = invoice.InvoiceNumber,
+        CustomerName = invoice.CustomerName,
+        InvoiceDate = invoice.InvoiceDate,
+        DueDate = invoice.DueDate,
+        Status = invoice.Status,
+        TotalAmount = invoice.TotalAmount,
+        UpdatedAtUtc = invoice.UpdatedAtUtc
+    };
+
     public async Task<InvoiceDeleteViewModel?> GetDeleteAsync(int id)
     {
         var invoice = await _repository.GetByIdAsync(id);

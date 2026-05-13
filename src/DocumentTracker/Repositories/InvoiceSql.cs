@@ -18,7 +18,32 @@ public static class InvoiceSql
         deleted_at_utc AS DeletedAtUtc
         """;
 
-    public const string GetById = $"""
+    private const string SearchFilters = """
+        FROM invoices
+        WHERE deleted_at_utc IS NULL
+            AND (
+                @SearchTerm IS NULL
+                OR invoice_number ILIKE @SearchPattern
+                OR customer_name ILIKE @SearchPattern
+                OR status ILIKE @SearchPattern
+            )
+            AND (@InvoiceDateFrom IS NULL OR invoice_date >= @InvoiceDateFrom)
+            AND (@InvoiceDateTo IS NULL OR invoice_date <= @InvoiceDateTo)
+        """;
+
+    public const string CountInvoices = $"""
+        SELECT COUNT(*)
+        {SearchFilters};
+        """;
+
+    public static string SearchInvoicesPage(string orderByClause) => $"""
+        SELECT {SelectColumns}
+        {SearchFilters}
+        ORDER BY {orderByClause}
+        LIMIT @PageSize OFFSET @Offset;
+        """;
+
+        public const string GetById = $"""
         SELECT {SelectColumns}
         FROM invoices
         WHERE id = @Id;
