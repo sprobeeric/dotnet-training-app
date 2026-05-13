@@ -2,17 +2,20 @@ using DocumentTracker.Controllers;
 using DocumentTracker.Services;
 using DocumentTracker.ViewModels;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Logging;
 using Moq;
 
 namespace DocumentTracker.Tests.Controllers;
 
-public class PaymentReceiptControllerTests
+public class PaymentReceiptsControllerTests
 {
     [Fact]
     public async Task Create_Post_WithInvalidModelState_ReturnsCreateView()
     {
         var service = new Mock<IPaymentReceiptService>();
-        var controller = new PaymentReceiptController(service.Object);
+        var roleProvider = new Mock<ICurrentUserRoleProvider>();
+        var logger = new Mock<ILogger<PaymentReceiptsController>>();
+        var controller = new PaymentReceiptsController(service.Object, roleProvider.Object, logger.Object);
         var viewModel = new PaymentReceiptCreateViewModel
         {
             Received = 100m,
@@ -57,18 +60,44 @@ public class PaymentReceiptControllerTests
     public async Task Index_WithoutPagingParameters_UsesDefaultPagingValues()
     {
         var service = new Mock<IPaymentReceiptService>();
+        var roleProvider = new Mock<ICurrentUserRoleProvider>();
+        var logger = new Mock<ILogger<PaymentReceiptsController>>();
+
         service
-            .Setup(paymentReceiptService => paymentReceiptService.SearchAsync(null, null, null, "payment_date", "desc", 1, 10))
+            .Setup(paymentReceiptService =>
+                paymentReceiptService.SearchAsync(
+                    It.IsAny<PaymentReceiptSearchViewModel>()
+                )
+            )
             .ReturnsAsync(new PaginatedResult<PaymentReceiptListItemViewModel>());
 
-        var controller = new PaymentReceiptController(service.Object);
+        var controller = new PaymentReceiptsController(
+            service.Object,
+            roleProvider.Object,
+            logger.Object
+        );
 
-        var result = await controller.Index(null, null, null);
+        var model = new PaymentReceiptSearchViewModel();
+
+        var result = await controller.Index(model);
 
         var viewResult = Assert.IsType<ViewResult>(result);
-        var model = Assert.IsType<PaymentReceiptSearchViewModel>(viewResult.Model);
-        Assert.Equal(1, model.Page);
-        Assert.Equal(10, model.PageSize);
-        service.Verify(paymentReceiptService => paymentReceiptService.SearchAsync(null, null, null, "payment_date", "desc", 1, 10), Times.Once);
+
+        var resultModel = Assert.IsType<PaymentReceiptSearchViewModel>(
+            viewResult.Model
+        );
+
+        Assert.Equal(1, resultModel.Page);
+        Assert.Equal(10, resultModel.PageSize);
+
+        service.Verify(paymentReceiptService =>
+            paymentReceiptService.SearchAsync(
+                It.Is<PaymentReceiptSearchViewModel>(m =>
+                    m.Page == 1 &&
+                    m.PageSize == 10
+                )
+            ),
+            Times.Once
+        );
     }
 }

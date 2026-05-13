@@ -40,7 +40,7 @@
     </div>
 </form>
 
-@if (Model.PaymentReceipts.Count == 0)
+@if (Model.Receipts.Count == 0)
 {
     <div class="alert alert-info">No payment receipts were found.</div>
 }
@@ -152,7 +152,7 @@ else
                 </tr>
             </thead>
             <tbody>
-            @foreach (var paymentReceipt in Model.PaymentReceipts)
+            @foreach (var paymentReceipt in Model.Receipts)
             {
                 <tr>
                     <td>@paymentReceipt.ReceiptNumber</td>

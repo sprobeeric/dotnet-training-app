@@ -42,7 +42,7 @@ app.MapStaticAssets();
 
 app.MapControllerRoute(
     name: "default",
-    pattern: "{controller=PaymentReceipt}/{action=Index}/{id?}")
+    pattern: "{controller=PaymentReceipts}/{action=Index}/{id?}")
     .WithStaticAssets();
 
 

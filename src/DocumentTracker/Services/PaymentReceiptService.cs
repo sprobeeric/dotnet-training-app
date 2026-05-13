@@ -28,14 +28,25 @@ public class PaymentReceiptService : IPaymentReceiptService
         _logger = logger;
     }
 
-    public async Task<PaginatedResult<PaymentReceiptListItemViewModel>> SearchAsync(string? searchTerm, DateOnly? dateFrom, DateOnly? dateTo, string sort, string order, int page, int pageSize)
+    public async Task<PaginatedResult<PaymentReceiptListItemViewModel>> SearchAsync(PaymentReceiptSearchViewModel model)
     {
-        var paymentReceipts = await _paymentReceiptRepository.SearchAsync(searchTerm, dateFrom, dateTo, sort, order, page, pageSize);
+        var criteria = new PaymentReceiptSearchCriteria
+        {
+            SearchTerm = model.SearchTerm,
+            DateFrom = model.DateFrom,
+            DateTo = model.DateTo,
+            Sort = model.Sort,
+            Order = model.Order,
+            Page = model.Page,
+            PageSize = model.PageSize
+        };
+
+        var receipts = await _paymentReceiptRepository.SearchAsync(criteria);
 
         return new PaginatedResult<PaymentReceiptListItemViewModel>
         {
-            Items = paymentReceipts.Items.Select(ToListItem).ToList(),
-            Total = paymentReceipts.Total
+            Items = receipts.Items.Select(ToListItem).ToList(),
+            Total = receipts.Total
         };
     }
 
@@ -105,6 +116,44 @@ public class PaymentReceiptService : IPaymentReceiptService
         return ServiceResult<int>.Failure(string.Empty, "The payment receipt could not be created. Please submit the purchase again.");
     }
 
+    public async Task<PaymentReceiptDetailsViewModel?> GetDetailsAsync(int id)
+    {
+        var receipt = await _paymentReceiptRepository.GetByIdAsync(id);
+        return receipt is null || receipt.DeletedAtUtc is not null
+            ? null
+            : ToDetails(receipt);
+    }
+
+    public async Task<PaymentReceiptDeleteViewModel?> GetDeleteAsync(int id)
+    {
+        var receipt = await _paymentReceiptRepository.GetByIdAsync(id);
+        return receipt is null || receipt.DeletedAtUtc is not null ? null : ToDelete(receipt);
+    }
+
+    public async Task<ServiceResult> SoftDeleteAsync(int id, string? currentRole)
+    {
+        if (!string.Equals(currentRole, DocumentRoles.DocumentAdmin, StringComparison.Ordinal))
+        {
+            return ServiceResult.Failure(string.Empty, "Only users in the DocumentAdmin role can delete payment receipts.");
+        }
+
+        var existing = await _paymentReceiptRepository.GetByIdAsync(id);
+        if (existing is null)
+        {
+            return ServiceResult.Failure(string.Empty, "The payment receipt was not found.");
+        }
+
+        if (existing.DeletedAtUtc is not null)
+        {
+            return ServiceResult.Failure(string.Empty, "This payment receipt has already been deleted.");
+        }
+
+        var deleted = await _paymentReceiptRepository.SoftDeleteAsync(id, DateTime.UtcNow);
+        return deleted
+            ? ServiceResult.Success()
+            : ServiceResult.Failure(string.Empty, "The payment receipt could not be deleted. It may have been changed by another user.");
+    }
+
     private static PaymentReceiptListItemViewModel ToListItem(PaymentReceipt paymentReceipt) => new()
     {
         Id = paymentReceipt.Id,
@@ -116,14 +165,6 @@ public class PaymentReceiptService : IPaymentReceiptService
         ReferenceNumber = paymentReceipt.ReferenceNumber,
         Notes = paymentReceipt.Notes
     };
-
-    public async Task<PaymentReceiptDetailsViewModel?> GetDetailsAsync(int id)
-    {
-        var receipt = await _paymentReceiptRepository.GetByIdAsync(id);
-        return receipt is null || receipt.DeletedAtUtc is not null
-            ? null
-            : ToDetails(receipt);
-    }
 
     private async Task<List<PaymentReceiptProductInputViewModel>> BuildProductInputsAsync()
     {
@@ -171,5 +212,17 @@ public class PaymentReceiptService : IPaymentReceiptService
         ProductName = item.Product.Name,
         UnitPrice = item.UnitPrice,
         Quantity = item.Quantity
+    };
+
+    private static PaymentReceiptDeleteViewModel ToDelete(PaymentReceipt paymentReceipt) => new()
+    {
+        Id = paymentReceipt.Id,
+        ReceiptNumber = paymentReceipt.ReceiptNumber,
+        InvoiceNumber = paymentReceipt.InvoiceNumber,
+        PaymentDate = paymentReceipt.PaymentDate,
+        AmountPaid = paymentReceipt.AmountPaid,
+        PaymentMethod = paymentReceipt.PaymentMethod,
+        ReferenceNumber = paymentReceipt.ReferenceNumber,
+        Notes = paymentReceipt.Notes
     };
 }

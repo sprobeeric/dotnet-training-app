@@ -87,8 +87,10 @@ public static class PaymentReceiptSql
 
     public const string GetById = $"""
         SELECT {SelectColumns}
-        FROM payment_receipts
-        WHERE id = @Id;
+        FROM payment_receipts pr
+        INNER JOIN invoices i
+            ON i.id = pr.invoice_id
+        WHERE pr.id = @Id;
         """;
 
     public const string GetProductsByReceiptId = """
@@ -108,5 +110,13 @@ public static class PaymentReceiptSql
         INNER JOIN products p ON p.id = prp.product_id
         WHERE prp.payment_receipt_id = @PaymentReceiptId
         ORDER BY p.name ASC;
+        """;
+
+    public const string SoftDeletePaymentReceipt = """
+        UPDATE payment_receipts
+        SET deleted_at_utc = @DeletedAtUtc,
+            updated_at_utc = @DeletedAtUtc
+        WHERE id = @Id
+          AND deleted_at_utc IS NULL;
         """;
 }

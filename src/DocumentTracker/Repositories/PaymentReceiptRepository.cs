@@ -15,11 +15,12 @@ public class PaymentReceiptRepository : IPaymentReceiptRepository
         _logger = logger;
     }
 
-    public async Task<PaginatedResult<PaymentReceipt>> SearchAsync(string? searchTerm, DateOnly? dateFrom, DateOnly? dateTo, string sort, string order, int page, int pageSize)
+    public async Task<PaginatedResult<PaymentReceipt>> SearchAsync(PaymentReceiptSearchCriteria criteria)
     {
-        var normalizedSearch = string.IsNullOrWhiteSpace(searchTerm) ? null : searchTerm.Trim();
-        var normalizedPage = page < 1 ? 1 : page;
-        var normalizedPageSize = pageSize < 1 ? 10 : pageSize;
+        var normalizedSearch = string.IsNullOrWhiteSpace(criteria.SearchTerm) ? null : criteria.SearchTerm.Trim();
+
+        var normalizedPage = criteria.Page < 1 ? 1 : criteria.Page;
+        var normalizedPageSize = criteria.PageSize < 1 ? 10 : criteria.PageSize;
         var offset = (normalizedPage - 1) * normalizedPageSize;
 
         var allowedSorts = new Dictionary<string, string>
@@ -33,36 +34,31 @@ public class PaymentReceiptRepository : IPaymentReceiptRepository
             ["notes"] = "pr.notes"
         };
 
-        var sortBy = allowedSorts.GetValueOrDefault(sort ?? string.Empty, "payment_date");
-        var orderBy = string.Equals(order, "asc", StringComparison.OrdinalIgnoreCase) ? "ASC" : "DESC";
+        var sortBy = allowedSorts.GetValueOrDefault(criteria.Sort ?? string.Empty, "pr.payment_date");
+        var orderBy = string.Equals(criteria.Order, "asc", StringComparison.OrdinalIgnoreCase) ? "ASC" : "DESC";
 
         await using var connection = await _dataSource.OpenConnectionAsync();
         var sql = PaymentReceiptSql.SearchPaymentReceipts(sortBy, orderBy);
-        var paymentReceipts = await connection.QueryAsync<PaymentReceipt>(
-            sql,
-            new
-            {
-                SearchTerm = normalizedSearch,
-                SearchPattern = normalizedSearch is null ? null : $"%{normalizedSearch}%",
-                DateFrom = dateFrom,
-                DateTo = dateTo,
-                PageSize = normalizedPageSize,
-                Offset = offset
-            });
+        var parameters = new
+        {
+            SearchTerm = normalizedSearch,
+            SearchPattern = normalizedSearch is null ? null : $"%{normalizedSearch}%",
+            criteria.DateFrom,
+            criteria.DateTo,
+            PageSize = normalizedPageSize,
+            Offset = offset
+        };
+
+        var receipts = await connection.QueryAsync<PaymentReceipt>(sql, parameters);
 
         var total = await connection.ExecuteScalarAsync<int>(
             PaymentReceiptSql.CountPaymentReceipts,
-            new
-            {
-                SearchTerm = normalizedSearch,
-                SearchPattern = normalizedSearch is null ? null : $"%{normalizedSearch}%",
-                DateFrom = dateFrom,
-                DateTo = dateTo
-            });
+            parameters
+        );
 
         return new PaginatedResult<PaymentReceipt>
         {
-            Items = paymentReceipts.AsList(),
+            Items = receipts.AsList(),
             Total = total
         };
     }
@@ -140,5 +136,20 @@ public class PaymentReceiptRepository : IPaymentReceiptRepository
         await transaction.CommitAsync();
         _logger.LogInformation("Created payment receipt with id {PaymentReceiptId}.", id);
         return id;
+    }
+
+    public async Task<bool> SoftDeleteAsync(int id, DateTime deletedAtUtc)
+    {
+        await using var connection = await _dataSource.OpenConnectionAsync();
+        await using var transaction = await connection.BeginTransactionAsync();
+
+        var rows = await connection.ExecuteAsync(
+            PaymentReceiptSql.SoftDeletePaymentReceipt,
+            new { Id = id, DeletedAtUtc = deletedAtUtc },
+            transaction);
+
+        await transaction.CommitAsync();
+        _logger.LogInformation("Soft deleted payment receipt with id {PaymentReceiptId}. Rows affected: {RowsAffected}.", id, rows);
+        return rows == 1;
     }
 }
