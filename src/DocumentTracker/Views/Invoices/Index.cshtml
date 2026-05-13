@@ -1,0 +1,202 @@
+@model InvoiceSearchViewModel
+
+@{
+    ViewData["Title"] = "Invoices";
+    var firstPage = Math.Max(1, Model.PageNumber - 2);
+    var lastPage = Math.Min(Model.TotalPages, firstPage + 4);
+    firstPage = Math.Max(1, lastPage - 4);
+    var invoiceDateFromValue = Model.InvoiceDateFrom?.ToString("yyyy-MM-dd");
+    var invoiceDateToValue = Model.InvoiceDateTo?.ToString("yyyy-MM-dd");
+    var sortIndicator = string.Equals(Model.SortDirection, "asc", StringComparison.OrdinalIgnoreCase) ? " ▲" : " ▼";
+
+    string GetSortDirection(string column) => Model.NextSortDirection(column);
+    string GetSortIndicator(string column) => Model.IsSortedBy(column) ? sortIndicator : string.Empty;
+}
+
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+    <h1 class="h3 mb-0">Invoices</h1>
+</div>
+
+<form asp-action="Index" method="get" class="row g-2 align-items-end mb-4">
+    <div class="col-md-6 col-lg-4">
+        <label asp-for="SearchTerm" class="form-label">Search</label>
+        <input asp-for="SearchTerm" class="form-control" placeholder="Invoice number, customer, or status" />
+    </div>
+    <div class="col-md-3 col-lg-2">
+        <label asp-for="InvoiceDateFrom" class="form-label">Invoice date from</label>
+        <div>
+            <input asp-for="InvoiceDateFrom" type="date" class="form-control" />
+        </div>
+    </div>
+    <div class="col-md-3 col-lg-2">
+        <label asp-for="InvoiceDateTo" class="form-label">Invoice date to</label>
+        <div>
+            <input asp-for="InvoiceDateTo" type="date" class="form-control" />
+        </div>
+    </div>
+    <div class="col-auto">
+        <button type="submit" class="btn btn-outline-primary">Search</button>
+    </div>
+    <div class="col-auto">
+        <a asp-action="Index" class="btn btn-outline-secondary">Clear</a>
+    </div>
+</form>
+
+@if (Model.Invoices.Count == 0)
+{
+    <div class="alert alert-info">No invoices were found.</div>
+}
+else
+{
+    <div class="table-responsive">
+        <table class="table table-striped table-hover align-middle">
+            <thead>
+                <tr>
+                    <th>
+                        <a asp-action="Index"
+                            asp-route-searchTerm="@Model.SearchTerm"
+                            asp-route-invoiceDateFrom="@invoiceDateFromValue"
+                            asp-route-invoiceDateTo="@invoiceDateToValue"
+                            asp-route-sortBy="invoice-number"
+                            asp-route-sortDirection='@GetSortDirection("invoice-number")'
+                            class="link-body-emphasis text-decoration-none">Invoice Number@(GetSortIndicator("invoice-number"))</a>
+                    </th>
+                    <th>
+                        <a asp-action="Index"
+                            asp-route-searchTerm="@Model.SearchTerm"
+                            asp-route-invoiceDateFrom="@invoiceDateFromValue"
+                            asp-route-invoiceDateTo="@invoiceDateToValue"
+                            asp-route-sortBy="customer"
+                            asp-route-sortDirection='@GetSortDirection("customer")'
+                            class="link-body-emphasis text-decoration-none">Customer@(GetSortIndicator("customer"))</a>
+                    </th>
+                    <th>
+                        <a asp-action="Index"
+                            asp-route-searchTerm="@Model.SearchTerm"
+                            asp-route-invoiceDateFrom="@invoiceDateFromValue"
+                            asp-route-invoiceDateTo="@invoiceDateToValue"
+                            asp-route-sortBy="invoice-date"
+                            asp-route-sortDirection='@GetSortDirection("invoice-date")'
+                            class="link-body-emphasis text-decoration-none">Invoice Date@(GetSortIndicator("invoice-date"))</a>
+                    </th>
+                    <th>
+                        <a asp-action="Index"
+                            asp-route-searchTerm="@Model.SearchTerm"
+                            asp-route-invoiceDateFrom="@invoiceDateFromValue"
+                            asp-route-invoiceDateTo="@invoiceDateToValue"
+                            asp-route-sortBy="due-date"
+                            asp-route-sortDirection='@GetSortDirection("due-date")'
+                            class="link-body-emphasis text-decoration-none">Due Date@(GetSortIndicator("due-date"))</a>
+                    </th>
+                    <th>
+                        <a asp-action="Index"
+                            asp-route-searchTerm="@Model.SearchTerm"
+                            asp-route-invoiceDateFrom="@invoiceDateFromValue"
+                            asp-route-invoiceDateTo="@invoiceDateToValue"
+                            asp-route-sortBy="status"
+                            asp-route-sortDirection='@GetSortDirection("status")'
+                            class="link-body-emphasis text-decoration-none">Status@(GetSortIndicator("status"))</a>
+                    </th>
+                    <th>
+                        <a asp-action="Index"
+                            asp-route-searchTerm="@Model.SearchTerm"
+                            asp-route-invoiceDateFrom="@invoiceDateFromValue"
+                            asp-route-invoiceDateTo="@invoiceDateToValue"
+                            asp-route-sortBy="total"
+                            asp-route-sortDirection='@GetSortDirection("total")'
+                            class="link-body-emphasis text-decoration-none">Total@(GetSortIndicator("total"))</a>
+                    </th>
+                    <th>Updated</th>
+                    <th class="text-end">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+            @foreach (var invoice in Model.Invoices)
+            {
+                <tr>
+                    <td>@invoice.InvoiceNumber</td>
+                    <td>@invoice.CustomerName</td>
+                    <td>@invoice.InvoiceDate.ToString("yyyy-MM-dd")</td>
+                    <td>@invoice.DueDate.ToString("yyyy-MM-dd")</td>
+                    <td><span class="badge text-bg-secondary">@invoice.Status</span></td>
+                    <td>@invoice.TotalAmount</td>
+                    <td>@(invoice.UpdatedAtUtc?.ToString("yyyy-MM-dd HH:mm:ss") ?? "-")</td>
+                    <td class="text-end text-nowrap">
+                        <a asp-action="Details" asp-route-id="@invoice.Id" class="btn btn-sm btn-outline-secondary">Details</a>
+                        <a asp-action="Edit" asp-route-id="@invoice.Id" class="btn btn-sm btn-outline-primary">Edit</a>
+                        <a asp-action="Delete" asp-route-id="@invoice.Id" class="btn btn-sm btn-outline-danger">Delete</a>
+                    </td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    </div>
+
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mt-3">
+        <p class="text-body-secondary mb-0">
+            Showing @Model.FirstItemIndex-@Model.LastItemIndex of @Model.TotalCount invoices
+        </p>
+
+        @if (Model.TotalPages > 1)
+        {
+            <nav aria-label="Invoice pagination" class="d-flex justify-content-end">
+                <ul class="pagination pagination-sm mb-0">
+                    <li class="page-item @(Model.HasPreviousPage ? string.Empty : "disabled")">
+                        @if (Model.HasPreviousPage)
+                        {
+                            <a class="page-link"
+                                asp-action="Index"
+                                asp-route-searchTerm="@Model.SearchTerm"
+                                asp-route-invoiceDateFrom="@invoiceDateFromValue"
+                                asp-route-invoiceDateTo="@invoiceDateToValue"
+                                asp-route-sortBy="@Model.SortBy"
+                                asp-route-sortDirection="@Model.SortDirection"
+                                asp-route-page="@(Model.PageNumber - 1)">Previous</a>
+                        }
+                        else
+                        {
+                            <span class="page-link">Previous</span>
+                        }
+                    </li>
+                    @for (var pageNumber = firstPage; pageNumber <= lastPage; pageNumber++)
+                    {
+                        <li class="page-item @(pageNumber == Model.PageNumber ? "active" : string.Empty)">
+                            @if (pageNumber == Model.PageNumber)
+                            {
+                                <span class="page-link">@pageNumber</span>
+                            }
+                            else
+                            {
+                                <a class="page-link"
+                                    asp-action="Index"
+                                    asp-route-searchTerm="@Model.SearchTerm"
+                                    asp-route-invoiceDateFrom="@invoiceDateFromValue"
+                                    asp-route-invoiceDateTo="@invoiceDateToValue"
+                                    asp-route-sortBy="@Model.SortBy"
+                                    asp-route-sortDirection="@Model.SortDirection"
+                                    asp-route-page="@pageNumber">@pageNumber</a>
+                            }
+                        </li>
+                    }
+                    <li class="page-item @(Model.HasNextPage ? string.Empty : "disabled")">
+                        @if (Model.HasNextPage)
+                        {
+                            <a class="page-link"
+                                asp-action="Index"
+                                asp-route-searchTerm="@Model.SearchTerm"
+                                asp-route-invoiceDateFrom="@invoiceDateFromValue"
+                                asp-route-invoiceDateTo="@invoiceDateToValue"
+                                asp-route-sortBy="@Model.SortBy"
+                                asp-route-sortDirection="@Model.SortDirection"
+                                asp-route-page="@(Model.PageNumber + 1)">Next</a>
+                        }
+                        else
+                        {
+                            <span class="page-link">Next</span>
+                        }
+                    </li>
+                </ul>
+            </nav>
+        }
+    </div>
+}

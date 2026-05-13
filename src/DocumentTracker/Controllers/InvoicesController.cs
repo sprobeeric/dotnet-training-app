@@ -2,63 +2,97 @@ using DocumentTracker.Services;
 using DocumentTracker.ViewModels;
 using Microsoft.AspNetCore.Mvc;
 
-namespace DocumentTracker.Controllers
+namespace DocumentTracker.Controllers;
+
+public class InvoicesController : Controller
 {
-    public class InvoicesController : Controller
+    private const int PageSize = 5;
+    private const string DefaultSortBy = "updated";
+    private const string DefaultSortDirection = "desc";
+    private readonly IInvoiceService _invoiceService;
+
+    public InvoicesController(IInvoiceService invoiceService)
     {
-        private readonly IInvoiceService _invoiceService;
+        _invoiceService = invoiceService;
+    }
 
-        public InvoicesController(
-            IInvoiceService invoiceService)
+    public async Task<IActionResult> Index(
+        string? searchTerm,
+        DateOnly? invoiceDateFrom,
+        DateOnly? invoiceDateTo,
+        string? sortBy,
+        string? sortDirection,
+        int page = 1)
+    {
+        var currentPage = page < 1 ? 1 : page;
+        var normalizedSortBy = string.IsNullOrWhiteSpace(sortBy) ? DefaultSortBy : sortBy.Trim();
+        var normalizedSortDirection = string.Equals(sortDirection, "asc", StringComparison.OrdinalIgnoreCase) ? "asc" : DefaultSortDirection;
+        var searchResult = await _invoiceService.SearchAsync(
+            searchTerm,
+            invoiceDateFrom,
+            invoiceDateTo,
+            normalizedSortBy,
+            normalizedSortDirection,
+            currentPage,
+            PageSize);
+
+
+        return View(new InvoiceSearchViewModel
         {
-            _invoiceService = invoiceService;
+            SearchTerm = searchTerm,
+            InvoiceDateFrom = invoiceDateFrom,
+            InvoiceDateTo = invoiceDateTo,
+            SortBy = normalizedSortBy,
+            SortDirection = normalizedSortDirection,
+            PageNumber = currentPage,
+            PageSize = PageSize,
+            TotalCount = searchResult.TotalCount,
+            Invoices = searchResult.Items
+        });
+    }
+
+    public async Task<IActionResult> Edit(int id)
+    {
+        var result = await _invoiceService.GetEditAsync(id);
+        if (!result.Succeeded || result.Value is null)
+        {
+            AddServiceErrors(result);
+            return View("ErrorMessage");
         }
 
+        return View(result.Value);
+    }
 
-            // GET: InvoiceController
-        public async Task<IActionResult> Edit(int id)
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> Edit(int id, InvoiceEditViewModel viewModel)
+    {
+        if (id != viewModel.Id)
         {
-            var result = await _invoiceService.GetEditAsync(id);
-            if (!result.Succeeded || result.Value is null)
-            {
-                AddServiceErrors(result);
-                return View("ErrorMessage");
-            }
-
-            return View(result.Value);
+            return BadRequest();
         }
 
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(int id, InvoiceEditViewModel viewModel)
+        if (!ModelState.IsValid)
         {
-            if (id != viewModel.Id)
-            {
-                return BadRequest();
-            }
-
-            if (!ModelState.IsValid)
-            {
-                return View(viewModel);
-            }
-
-            var result = await _invoiceService.UpdateAsync(viewModel);
-            if (!result.Succeeded)
-            {
-                AddServiceErrors(result);
-                return View(viewModel);
-            }
-
-            return RedirectToAction(nameof(Edit), new { id = viewModel.Id });
+            return View(viewModel);
         }
 
-        
-        private void AddServiceErrors(ServiceResult result)
+        var result = await _invoiceService.UpdateAsync(viewModel);
+        if (!result.Succeeded)
         {
-            foreach (var error in result.Errors)
-            {
-                ModelState.AddModelError(error.Key, error.Message);
-            }
+            AddServiceErrors(result);
+            return View(viewModel);
+        }
+
+        return RedirectToAction(nameof(Edit), new { id = viewModel.Id });
+    }
+
+    
+    private void AddServiceErrors(ServiceResult result)
+    {
+        foreach (var error in result.Errors)
+        {
+            ModelState.AddModelError(error.Key, error.Message);
         }
     }
 }
