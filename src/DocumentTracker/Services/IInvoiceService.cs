@@ -5,7 +5,6 @@ namespace DocumentTracker.Services;
 
 public interface IInvoiceService
 {
-    Task<ServiceResult<int>> CreateAsync(InvoiceCreateViewModel viewModel);
     Task<PagedResult<InvoiceListItemViewModel>> SearchAsync(
         string? searchTerm,
         DateOnly? invoiceDateFrom,
@@ -14,4 +13,5 @@ public interface IInvoiceService
         string? sortDirection,
         int pageNumber,
         int pageSize);
+    Task<ServiceResult<int>> CreateAsync(InvoiceCreateViewModel viewModel);
 }

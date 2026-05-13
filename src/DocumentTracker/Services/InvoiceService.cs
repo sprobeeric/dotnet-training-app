@@ -16,6 +16,30 @@ public class InvoiceService : IInvoiceService
         _repository = repository;
         _logger = logger;
     }
+    
+    public async Task<PagedResult<InvoiceListItemViewModel>> SearchAsync(
+        string? searchTerm,
+        DateOnly? invoiceDateFrom,
+        DateOnly? invoiceDateTo,
+        string? sortBy,
+        string? sortDirection,
+        int pageNumber,
+        int pageSize)
+    {
+        var searchResult = await _repository.SearchAsync(
+            searchTerm,
+            invoiceDateFrom,
+            invoiceDateTo,
+            sortBy,
+            sortDirection,
+            pageNumber,
+            pageSize);
+        return new PagedResult<InvoiceListItemViewModel>
+        {
+            Items = searchResult.Items.Select(ToListItem).ToList(),
+            TotalCount = searchResult.TotalCount
+        };
+    }
 
     public async Task<ServiceResult<int>> CreateAsync(InvoiceCreateViewModel viewModel)
     {
@@ -25,8 +49,8 @@ public class InvoiceService : IInvoiceService
             return validationResult;
         }
 
-        var existing = await _repository.GetByInvoiceNumberAsync(viewModel.InvoiceNumber);
-        if (existing is not null)
+        var invoiceNumberExists = await _repository.InvoiceNumberExistsAsync(viewModel.InvoiceNumber);
+        if (invoiceNumberExists)
         {
             return ServiceResult<int>.Failure(nameof(viewModel.InvoiceNumber), "An invoice with this invoice number already exists.");
         }
@@ -79,35 +103,6 @@ public class InvoiceService : IInvoiceService
             var key = validationResult.MemberNames.FirstOrDefault() ?? string.Empty;
             result.AddError(key, validationResult.ErrorMessage ?? "The value is invalid.");
         }
-    }
-
-    public InvoiceService(IInvoiceRepository repository)
-    {
-        _repository = repository;
-    }
-
-    public async Task<PagedResult<InvoiceListItemViewModel>> SearchAsync(
-        string? searchTerm,
-        DateOnly? invoiceDateFrom,
-        DateOnly? invoiceDateTo,
-        string? sortBy,
-        string? sortDirection,
-        int pageNumber,
-        int pageSize)
-    {
-        var searchResult = await _repository.SearchAsync(
-            searchTerm,
-            invoiceDateFrom,
-            invoiceDateTo,
-            sortBy,
-            sortDirection,
-            pageNumber,
-            pageSize);
-        return new PagedResult<InvoiceListItemViewModel>
-        {
-            Items = searchResult.Items.Select(ToListItem).ToList(),
-            TotalCount = searchResult.TotalCount
-        };
     }
 
     private static InvoiceListItemViewModel ToListItem(Invoice invoice) => new()

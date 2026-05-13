@@ -12,6 +12,6 @@ public interface IInvoiceRepository
         string? sortDirection,
         int pageNumber,
         int pageSize);
-    Task<Invoice?> GetByInvoiceNumberAsync(string documentNumber);
+    Task<bool> InvoiceNumberExistsAsync(string invoiceNumber, int? excludeId = null);
     Task<int> CreateAsync(Invoice invoice);
 }

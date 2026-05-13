@@ -18,12 +18,14 @@ public static class InvoiceSql
         deleted_at_utc AS DeletedAtUtc
         """;
 
-        public const string GetByInvoiceNumber = $"""
-        SELECT {SelectColumns}
-        FROM invoices
-        WHERE lower(invoice_number) = lower(@InvoiceNumber)
-        LIMIT 1;
-        """; 
+    public const string InvoiceNumberExists = """
+        SELECT EXISTS (
+            SELECT 1
+            FROM invoices
+            WHERE lower(invoice_number) = lower(@InvoiceNumber)
+                AND (@ExcludeId IS NULL or id <> @ExcludeId)
+            )
+        """;
 
     public const string InsertInvoice = """
         INSERT INTO invoices
