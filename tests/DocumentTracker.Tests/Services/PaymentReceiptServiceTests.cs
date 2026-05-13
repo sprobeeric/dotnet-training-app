@@ -1,6 +1,8 @@
 using DocumentTracker.Models;
 using DocumentTracker.Repositories;
 using DocumentTracker.Services;
+using DocumentTracker.ViewModels;
+using Microsoft.Extensions.Logging;
 using Moq;
 
 namespace DocumentTracker.Tests.Services;
@@ -66,18 +68,14 @@ public class PaymentReceiptServiceTests
     public async Task GetDetailsAsync_WhenReceiptIsMissing_ReturnsNull()
     {
         var service = CreateService();
-        Assert.True(result.Succeeded);
-        Assert.Equal(11, result.Value);
-        _paymentReceiptRepository.Verify(repository => repository.CreateAsync(It.Is<PaymentReceipt>(paymentReceipt =>
-            paymentReceipt.ReceiptNumber == "RCT-0001" &&
-            paymentReceipt.InvoiceId == 1 &&
-            paymentReceipt.PaymentDate == new DateOnly(2026, 5, 13) &&
-            paymentReceipt.AmountPaid == 1000m &&
-            paymentReceipt.PaymentMethod == "Bank Transfer" &&
-            paymentReceipt.ReferenceNumber == "REF-1001" &&
-            paymentReceipt.Notes == "Partial payment received." &&
-            paymentReceipt.CreatedAtUtc.HasValue &&
-            paymentReceipt.UpdatedAtUtc.HasValue)), Times.Once);
+
+        _paymentReceiptRepository
+            .Setup(repository => repository.GetByIdAsync(5))
+            .ReturnsAsync((PaymentReceipt?)null);
+
+        var result = await service.GetDetailsAsync(5);
+
+        Assert.Null(result);
     }
 
     [Fact]

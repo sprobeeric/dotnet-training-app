@@ -12,7 +12,8 @@ public class PaymentReceiptsControllerTests
     public async Task Details_WhenReceiptIsMissing_ReturnsNotFound()
     {
         var service = new Mock<IPaymentReceiptService>();
-        var controller = new PaymentReceiptsController(service.Object);
+        var createPageService = new Mock<IPaymentReceiptCreatePageService>();
+        var controller = new PaymentReceiptsController(service.Object, createPageService.Object);
 
         service
             .Setup(paymentReceiptService => paymentReceiptService.GetDetailsAsync(5))
@@ -27,7 +28,8 @@ public class PaymentReceiptsControllerTests
     public async Task Details_WhenReceiptExists_ReturnsDetailsView()
     {
         var service = new Mock<IPaymentReceiptService>();
-        var controller = new PaymentReceiptsController(service.Object);
+        var createPageService = new Mock<IPaymentReceiptCreatePageService>();
+        var controller = new PaymentReceiptsController(service.Object, createPageService.Object);
         var details = new PaymentReceiptDetailsViewModel
         {
             Id = 5,
