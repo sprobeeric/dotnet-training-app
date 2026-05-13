@@ -32,5 +32,29 @@ public static class InvoiceSql
             (@InvoiceNumber, @CustomerName, @InvoiceDate, @DueDate, @Status, @Subtotal, @TaxAmount, @TotalAmount, @Notes, @CreatedAtUtc, @UpdatedAtUtc)
         RETURNING id;
         """;
-}
 
+    private const string SearchFilters = """
+        FROM invoices
+        WHERE deleted_at_utc IS NULL
+            AND (
+                @SearchTerm IS NULL
+                OR invoice_number ILIKE @SearchPattern
+                OR customer_name ILIKE @SearchPattern
+                OR status ILIKE @SearchPattern
+            )
+            AND (@InvoiceDateFrom IS NULL OR invoice_date >= @InvoiceDateFrom)
+            AND (@InvoiceDateTo IS NULL OR invoice_date <= @InvoiceDateTo)
+        """;
+
+    public const string CountInvoices = $"""
+        SELECT COUNT(*)
+        {SearchFilters};
+        """;
+
+    public static string SearchInvoicesPage(string orderByClause) => $"""
+        SELECT {SelectColumns}
+        {SearchFilters}
+        ORDER BY {orderByClause}
+        LIMIT @PageSize OFFSET @Offset;
+        """;
+}
