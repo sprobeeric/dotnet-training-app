@@ -127,7 +127,9 @@ public class PaymentReceiptRepository : IPaymentReceiptRepository
             PaymentReceiptSql.UpdateInvoiceStatusToPaid,
             new
             {
+                PaymentReceiptId = id,
                 paymentReceipt.InvoiceId,
+                paymentReceipt.AmountPaid,
                 UpdatedAtUtc = paymentReceipt.UpdatedAtUtc
             },
             transaction);

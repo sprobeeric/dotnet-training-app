@@ -54,10 +54,17 @@ public static class PaymentReceiptSql
         """;
 
     public const string UpdateInvoiceStatusToPaid = """
-        UPDATE invoices
+        UPDATE invoices i
         SET status = 'Paid',
             updated_at_utc = @UpdatedAtUtc
-        WHERE id = @InvoiceId;
+        WHERE i.id = @InvoiceId
+        AND @AmountPaid >= i.total_amount - (
+            SELECT COALESCE(SUM(pr.amount_paid), 0)
+            FROM payment_receipts pr
+            WHERE pr.invoice_id = i.id
+            AND pr.deleted_at_utc IS NULL
+            AND pr.id <> @PaymentReceiptId
+        );
         """;
 
     public static string SearchPaymentReceipts(string sortBy, string orderBy) => $"""

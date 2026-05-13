@@ -66,7 +66,7 @@ public class PaymentReceiptServiceTests
     }
 
     [Fact]
-    public async Task CreateAsync_WithAmountNotEqualToRemainingBalance_ReturnsValidationError()
+    public async Task CreateAsync_WithAmountAboveRemainingBalance_ReturnsValidationError()
     {
         var service = CreateService();
         var viewModel = ValidCreateViewModel();
@@ -80,6 +80,36 @@ public class PaymentReceiptServiceTests
         Assert.False(result.Succeeded);
         Assert.Contains(result.Errors, error => error.Key == nameof(PaymentReceiptCreateViewModel.AmountPaid));
         _paymentReceiptRepository.Verify(repository => repository.CreateAsync(It.IsAny<PaymentReceipt>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task CreateAsync_WithPartialAmountBelowRemainingBalance_CreatesPaymentReceipt()
+    {
+        var service = CreateService();
+        var viewModel = ValidCreateViewModel();
+        viewModel.AmountPaid = 250m;
+
+        _invoiceLookupRepository
+            .Setup(repository => repository.GetPaymentReceiptSummaryByNumberAsync("INV-1001"))
+            .ReturnsAsync(OpenInvoiceSummary());
+        _paymentReceiptRepository
+            .Setup(repository => repository.InvoiceExistsAndPendingAsync(1))
+            .ReturnsAsync(true);
+        _paymentReceiptRepository
+            .Setup(repository => repository.ReceiptNumberExistsAsync("RCT-0001", null))
+            .ReturnsAsync(false);
+        _paymentReceiptRepository
+            .Setup(repository => repository.ReferenceNumberExistsAsync("REF-1001", null))
+            .ReturnsAsync(false);
+        _paymentReceiptRepository
+            .Setup(repository => repository.CreateAsync(It.IsAny<PaymentReceipt>()))
+            .ReturnsAsync(11);
+
+        var result = await service.CreateAsync(viewModel);
+
+        Assert.True(result.Succeeded);
+        _paymentReceiptRepository.Verify(repository => repository.CreateAsync(It.Is<PaymentReceipt>(paymentReceipt =>
+            paymentReceipt.AmountPaid == 250m)), Times.Once);
     }
 
     [Fact]
