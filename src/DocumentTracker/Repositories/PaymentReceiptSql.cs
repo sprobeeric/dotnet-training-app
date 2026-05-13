@@ -30,7 +30,6 @@ public static class PaymentReceiptSql
             SELECT 1
             FROM payment_receipts
             WHERE receipt_number = @ReceiptNumber
-            AND deleted_at_utc IS NULL
             AND (@ExcludeId IS NULL OR id <> @ExcludeId)
         );
         """;
@@ -40,7 +39,6 @@ public static class PaymentReceiptSql
             SELECT 1
             FROM payment_receipts
             WHERE reference_number = @ReferenceNumber
-            AND deleted_at_utc IS NULL
             AND (@ExcludeId IS NULL OR id <> @ExcludeId)
         );
         """;

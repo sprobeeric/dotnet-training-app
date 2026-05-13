@@ -186,9 +186,9 @@ public class PaymentReceiptService : IPaymentReceiptService
                 result.AddError(nameof(viewModel.InvoiceNumber), "Only invoices in Pending status can receive payments.");
             }
 
-            if (viewModel.AmountPaid.HasValue && viewModel.AmountPaid.Value != viewModel.InvoiceSummary.RemainingBalance)
+            if (viewModel.AmountPaid.HasValue && viewModel.AmountPaid.Value > viewModel.InvoiceSummary.RemainingBalance)
             {
-                result.AddError(nameof(viewModel.AmountPaid), $"Amount paid must exactly match the remaining balance of {viewModel.InvoiceSummary.RemainingBalance:N2}.");
+                result.AddError(nameof(viewModel.AmountPaid), $"Amount paid cannot exceed the remaining balance of {viewModel.InvoiceSummary.RemainingBalance:N2}.");
             }
         }
 
