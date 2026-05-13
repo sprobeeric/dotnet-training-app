@@ -34,5 +34,6 @@ public class PaymentReceiptCreatePageServiceTests
         Assert.Equal(1, result.InvoiceId);
         Assert.NotNull(result.InvoiceSummary);
         Assert.Equal(1000m, result.InvoiceSummary!.RemainingBalance);
+        Assert.Equal(375m, result.InvoiceSummary.PreviouslyPaid);
     }
 }

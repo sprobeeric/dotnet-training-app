@@ -30,18 +30,36 @@ public static class PaymentReceiptSql
             SELECT 1
             FROM payment_receipts
             WHERE receipt_number = @ReceiptNumber
+            AND deleted_at_utc IS NULL
             AND (@ExcludeId IS NULL OR id <> @ExcludeId)
         );
         """;
 
-    public const string InvoiceExistsAndActive = """
+    public const string ReferenceNumberExists = """
+        SELECT EXISTS (
+            SELECT 1
+            FROM payment_receipts
+            WHERE reference_number = @ReferenceNumber
+            AND deleted_at_utc IS NULL
+            AND (@ExcludeId IS NULL OR id <> @ExcludeId)
+        );
+        """;
+
+    public const string InvoiceExistsAndPending = """
         SELECT EXISTS (
             SELECT 1
             FROM invoices
             WHERE id = @InvoiceId
             AND deleted_at_utc IS NULL
-            AND status NOT IN ('Draft', 'Cancelled')
+            AND status = 'Pending'
         );
+        """;
+
+    public const string UpdateInvoiceStatusToPaid = """
+        UPDATE invoices
+        SET status = 'Paid',
+            updated_at_utc = @UpdatedAtUtc
+        WHERE id = @InvoiceId;
         """;
 
     public static string SearchPaymentReceipts(string sortBy, string orderBy) => $"""

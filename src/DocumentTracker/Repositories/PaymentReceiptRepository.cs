@@ -4,7 +4,7 @@ using Npgsql;
 
 namespace DocumentTracker.Repositories;
 
-public class PaymentReceiptRepository : IPaymentReceiptRepository, IPaymentReceiptNumberSequenceProvider
+public class PaymentReceiptRepository : IPaymentReceiptRepository
 {
     private readonly NpgsqlDataSource _dataSource;
     private readonly ILogger<PaymentReceiptRepository> _logger;
@@ -86,28 +86,26 @@ public class PaymentReceiptRepository : IPaymentReceiptRepository, IPaymentRecei
             new { ReceiptNumber = receiptNumber, ExcludeId = excludeId });
     }
 
-    public async Task<bool> InvoiceExistsAndActiveAsync(int invoiceId)
+    public async Task<bool> ReferenceNumberExistsAsync(string referenceNumber, int? excludeId = null)
     {
         await using var connection = await _dataSource.OpenConnectionAsync();
         return await connection.ExecuteScalarAsync<bool>(
-            PaymentReceiptSql.InvoiceExistsAndActive,
-            new { InvoiceId = invoiceId });
+            PaymentReceiptSql.ReferenceNumberExists,
+            new { ReferenceNumber = referenceNumber, ExcludeId = excludeId });
     }
 
-    public async Task<int> GetNextReceiptSequenceAsync()
+    public async Task<bool> InvoiceExistsAndPendingAsync(int invoiceId)
     {
         await using var connection = await _dataSource.OpenConnectionAsync();
-        return await connection.ExecuteScalarAsync<int>(
-            """
-            SELECT COALESCE(MAX(CAST(SUBSTRING(receipt_number FROM '[0-9]+$') AS integer)), 1000) + 1
-            FROM payment_receipts
-            WHERE receipt_number ~ '^PR-[0-9]+$';
-            """);
+        return await connection.ExecuteScalarAsync<bool>(
+            PaymentReceiptSql.InvoiceExistsAndPending,
+            new { InvoiceId = invoiceId });
     }
 
     public async Task<int> CreateAsync(PaymentReceipt paymentReceipt)
     {
         await using var connection = await _dataSource.OpenConnectionAsync();
+        await using var transaction = await connection.BeginTransactionAsync();
 
         var id = await connection.ExecuteScalarAsync<int>(
             PaymentReceiptSql.InsertPaymentReceipt,
@@ -122,7 +120,19 @@ public class PaymentReceiptRepository : IPaymentReceiptRepository, IPaymentRecei
                 paymentReceipt.Notes,
                 paymentReceipt.CreatedAtUtc,
                 paymentReceipt.UpdatedAtUtc
-            });
+            },
+            transaction);
+
+        await connection.ExecuteAsync(
+            PaymentReceiptSql.UpdateInvoiceStatusToPaid,
+            new
+            {
+                paymentReceipt.InvoiceId,
+                UpdatedAtUtc = paymentReceipt.UpdatedAtUtc
+            },
+            transaction);
+
+        await transaction.CommitAsync();
 
         _logger.LogInformation("Created payment receipt with id {PaymentReceiptId}.", id);
         return id;

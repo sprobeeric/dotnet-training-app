@@ -58,6 +58,35 @@ public class PaymentReceiptControllerTests
     }
 
     [Fact]
+    public async Task Create_Post_WithDuplicateReceiptNumber_AddsFieldError()
+    {
+        var service = new Mock<IPaymentReceiptService>();
+        var createPageService = new Mock<IPaymentReceiptCreatePageService>();
+        var controller = new PaymentReceiptsController(service.Object, createPageService.Object);
+        var viewModel = new PaymentReceiptCreateViewModel
+        {
+            ReceiptNumber = "RCT-0001",
+            InvoiceNumber = "INV-1001",
+            PaymentDate = new DateOnly(2026, 5, 13),
+            AmountPaid = 100m,
+            PaymentMethod = "Cash"
+        };
+
+        service
+            .Setup(paymentReceiptService => paymentReceiptService.CreateAsync(viewModel))
+            .ReturnsAsync(ServiceResult<int>.Failure(nameof(PaymentReceiptCreateViewModel.ReceiptNumber), "A payment receipt with this receipt number already exists."));
+
+        var result = await controller.Create(viewModel);
+
+        var viewResult = Assert.IsType<ViewResult>(result);
+        Assert.IsType<PaymentReceiptCreateViewModel>(viewResult.Model);
+        Assert.False(controller.ModelState.IsValid);
+        Assert.Contains(controller.ModelState[nameof(PaymentReceiptCreateViewModel.ReceiptNumber)]!.Errors,
+            error => error.ErrorMessage == "A payment receipt with this receipt number already exists.");
+        createPageService.Verify(paymentReceiptService => paymentReceiptService.PopulateInvoiceSummaryAsync(viewModel), Times.Once);
+    }
+
+    [Fact]
     public async Task Index_WithoutPagingParameters_UsesDefaultPagingValues()
     {
         var service = new Mock<IPaymentReceiptService>();

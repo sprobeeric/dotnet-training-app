@@ -6,6 +6,11 @@ namespace DocumentTracker.ViewModels;
 public class PaymentReceiptCreateViewModel
 {
     [Required]
+    [Display(Name = "Receipt Number")]
+    [StringLength(50)]
+    public string ReceiptNumber { get; set; } = string.Empty;
+
+    [Required]
     [Display(Name = "Invoice Number")]
     [StringLength(50)]
     public string InvoiceNumber { get; set; } = string.Empty;
@@ -51,4 +56,5 @@ public class PaymentReceiptInvoiceSummaryViewModel
     public decimal PreviouslyPaid { get; set; }
     public decimal RemainingBalance { get; set; }
     public string? Notes { get; set; }
+    public bool AllowsPayment => Status == InvoiceStatus.Pending;
 }

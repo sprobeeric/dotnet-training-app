@@ -5,6 +5,8 @@ const initializePaymentReceiptCreate = () => {
     const form = document.querySelector("[data-payment-receipt-create-form]");
     const lookupButton = document.querySelector("[data-invoice-lookup-button]");
     const amountPaidInput = document.querySelector("[data-amount-paid-input]");
+    const paymentMethodInput = document.querySelector("[data-payment-method-input]");
+    const referenceNumberInput = document.querySelector("[data-reference-number-input]");
     const paymentSummary = document.querySelector("[data-payment-summary]");
     const currentPaymentTarget = document.querySelector("[data-current-payment]");
     const balanceAfterPaymentTarget = document.querySelector("[data-balance-after-payment]");
@@ -49,11 +51,27 @@ const initializePaymentReceiptCreate = () => {
         balanceAfterPaymentTarget.textContent = formatMoney(balanceAfterPayment);
 
         balanceAfterPaymentTarget.classList.remove("text-danger", "text-success");
-        balanceAfterPaymentTarget.classList.add(balanceAfterPayment < 0 ? "text-danger" : "text-success");
+        balanceAfterPaymentTarget.classList.add(balanceAfterPayment === 0 ? "text-success" : "text-danger");
+    };
+
+    const updateReferenceNumberState = () => {
+        if (!(paymentMethodInput instanceof HTMLSelectElement) || !(referenceNumberInput instanceof HTMLInputElement)) {
+            return;
+        }
+
+        const paymentDetailsDisabled = paymentMethodInput.disabled;
+        const isCash = paymentMethodInput.value === "Cash";
+
+        referenceNumberInput.disabled = paymentDetailsDisabled || isCash;
+        if (isCash) {
+            referenceNumberInput.value = "";
+        }
     };
 
     amountPaidInput?.addEventListener("input", updatePaymentSummary);
+    paymentMethodInput?.addEventListener("change", updateReferenceNumberState);
     updatePaymentSummary();
+    updateReferenceNumberState();
 };
 
 if (document.readyState === "loading") {
