@@ -17,7 +17,57 @@ public static class PaymentReceiptSql
         pr.updated_at_utc AS UpdatedAtUtc,
         pr.deleted_at_utc AS DeletedAtUtc
         """;
-    
+
+    public const string InsertPaymentReceipt = """
+        INSERT INTO payment_receipts
+            (receipt_number, invoice_id, payment_date, amount_paid, payment_method, reference_number, notes, created_at_utc, updated_at_utc)
+        VALUES
+            (@ReceiptNumber, @InvoiceId, @PaymentDate, @AmountPaid, @PaymentMethod, @ReferenceNumber, @Notes, @CreatedAtUtc, @UpdatedAtUtc)
+        RETURNING id;
+        """;
+
+    public const string ReceiptNumberExists = """
+        SELECT EXISTS (
+            SELECT 1
+            FROM payment_receipts
+            WHERE receipt_number = @ReceiptNumber
+            AND (@ExcludeId IS NULL OR id <> @ExcludeId)
+        );
+        """;
+
+    public const string ReferenceNumberExists = """
+        SELECT EXISTS (
+            SELECT 1
+            FROM payment_receipts
+            WHERE reference_number = @ReferenceNumber
+            AND (@ExcludeId IS NULL OR id <> @ExcludeId)
+        );
+        """;
+
+    public const string InvoiceExistsAndPending = """
+        SELECT EXISTS (
+            SELECT 1
+            FROM invoices
+            WHERE id = @InvoiceId
+            AND deleted_at_utc IS NULL
+            AND status = 'Pending'
+        );
+        """;
+
+    public const string UpdateInvoiceStatusToPaid = """
+        UPDATE invoices i
+        SET status = 'Paid',
+            updated_at_utc = @UpdatedAtUtc
+        WHERE i.id = @InvoiceId
+        AND @AmountPaid >= i.total_amount - (
+            SELECT COALESCE(SUM(pr.amount_paid), 0)
+            FROM payment_receipts pr
+            WHERE pr.invoice_id = i.id
+            AND pr.deleted_at_utc IS NULL
+            AND pr.id <> @PaymentReceiptId
+        );
+        """;
+
     public static string SearchPaymentReceipts(string sortBy, string orderBy) => $"""
         SELECT {SelectColumns}
         FROM payment_receipts pr
@@ -74,7 +124,11 @@ public static class PaymentReceiptSql
         FROM payment_receipts pr
         INNER JOIN invoices i
             ON i.id = pr.invoice_id
+<<<<<<< HEAD
         WHERE pr.id = @Id
           AND pr.deleted_at_utc IS NULL;
+=======
+        WHERE pr.id = @Id;
+>>>>>>> develop-payment-receipt
         """;
 }

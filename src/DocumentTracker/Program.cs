@@ -16,7 +16,9 @@ if (string.IsNullOrWhiteSpace(connectionString))
 builder.Services.AddSingleton(_ => NpgsqlDataSource.Create(connectionString));
 builder.Services.AddScoped<IDocumentRepository, DocumentRepository>();
 builder.Services.AddScoped<IDocumentService, DocumentService>();
+builder.Services.AddScoped<IInvoiceLookupRepository, InvoiceLookupRepository>();
 builder.Services.AddScoped<IPaymentReceiptRepository, PaymentReceiptRepository>();
+builder.Services.AddScoped<IPaymentReceiptCreatePageService, PaymentReceiptCreatePageService>();
 builder.Services.AddScoped<IPaymentReceiptService, PaymentReceiptService>();
 builder.Services.AddScoped<ICurrentUserRoleProvider, AppSettingsCurrentUserRoleProvider>();
 
