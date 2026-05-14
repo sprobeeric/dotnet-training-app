@@ -23,8 +23,6 @@ public class PaymentReceiptRepository : IPaymentReceiptRepository
         var normalizedDateFrom = criteria.DateFrom?.ToDateTime(TimeOnly.MinValue);
         var normalizedDateTo = criteria.DateTo?.ToDateTime(TimeOnly.MinValue);
         var offset = (normalizedPage - 1) * normalizedPageSize;
-        var dateFromValue = criteria.DateFrom?.ToDateTime(TimeOnly.MinValue);
-        var dateToValue = criteria.DateTo?.ToDateTime(TimeOnly.MinValue);
 
         var allowedSorts = new Dictionary<string, string>
         {
@@ -40,9 +38,8 @@ public class PaymentReceiptRepository : IPaymentReceiptRepository
 
         var sortBy = allowedSorts.GetValueOrDefault(criteria.Sort ?? string.Empty, "pr.payment_date");
         var orderBy = string.Equals(criteria.Order, "asc", StringComparison.OrdinalIgnoreCase) ? "ASC" : "DESC";
-
-        await using var connection = await _dataSource.OpenConnectionAsync();
         var parameters = new DynamicParameters();
+
         parameters.Add("SearchTerm", normalizedSearch);
         parameters.Add("SearchPattern", normalizedSearch is null ? null : $"%{normalizedSearch}%");
         parameters.Add("DateFrom", normalizedDateFrom);
@@ -50,28 +47,16 @@ public class PaymentReceiptRepository : IPaymentReceiptRepository
         parameters.Add("PageSize", normalizedPageSize);
         parameters.Add("Offset", offset);
 
+        await using var connection = await _dataSource.OpenConnectionAsync();
+
         var sql = PaymentReceiptSql.SearchPaymentReceipts(sortBy, orderBy);
         var receipts = await connection.QueryAsync<PaymentReceipt>(
             sql,
-            new
-            {
-                SearchTerm = normalizedSearch,
-                SearchPattern = normalizedSearch is null ? null : $"%{normalizedSearch}%",
-                DateFrom = dateFromValue,
-                DateTo = dateToValue,
-                PageSize = normalizedPageSize,
-                Offset = offset
-            });
+            parameters);
 
         var total = await connection.ExecuteScalarAsync<int>(
             PaymentReceiptSql.CountPaymentReceipts,
-            new
-            {
-                SearchTerm = normalizedSearch,
-                SearchPattern = normalizedSearch is null ? null : $"%{normalizedSearch}%",
-                DateFrom = dateFromValue,
-                DateTo = dateToValue
-            });
+            parameters);
 
         return new PaginatedResult<PaymentReceipt>
         {
