@@ -269,6 +269,7 @@ public class PaymentReceiptService : IPaymentReceiptService
         CustomerName = receipt.CustomerName,
         PaymentDate = receipt.PaymentDate,
         AmountPaid = receipt.AmountPaid,
+        OutstandingBalance = receipt.OutstandingBalance,
         PaymentMethod = receipt.PaymentMethod,
         ReferenceNumber = receipt.ReferenceNumber,
         Notes = receipt.Notes,

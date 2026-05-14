@@ -34,9 +34,13 @@
                         <div class="text-uppercase text-muted small fw-semibold mb-1">Payment Date</div>
                         <div class="fs-5">@Model.PaymentDate.ToString("yyyy-MM-dd")</div>
                     </div>
-                    <div class="col-md-6 text-md-end">
+                    <div class="col-md-3 text-md-end">
                         <div class="text-uppercase text-muted small fw-semibold mb-1">Amount Paid</div>
                         <div class="display-6 fw-semibold">@Model.AmountPaid.ToString("N2")</div>
+                    </div>
+                    <div class="col-md-3 text-md-end">
+                        <div class="text-uppercase text-muted small fw-semibold mb-1">Outstanding Balance</div>
+                        <div class="display-6 fw-semibold">@Model.OutstandingBalance.ToString("N2")</div>
                     </div>
                 </div>
 

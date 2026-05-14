@@ -10,6 +10,12 @@ public static class PaymentReceiptSql
         i.customer_name AS CustomerName,
         pr.payment_date AS PaymentDate,
         pr.amount_paid AS AmountPaid,
+        GREATEST(i.total_amount - (
+            SELECT COALESCE(SUM(active_pr.amount_paid), 0)
+            FROM payment_receipts active_pr
+            WHERE active_pr.invoice_id = i.id
+            AND active_pr.deleted_at_utc IS NULL
+        ), 0) AS OutstandingBalance,
         pr.payment_method AS PaymentMethod,
         pr.reference_number AS ReferenceNumber,
         pr.notes AS Notes,
