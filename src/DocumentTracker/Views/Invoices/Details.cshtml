@@ -44,11 +44,11 @@
     <dd class="col-sm-9">@(string.IsNullOrWhiteSpace(Model.Notes) ? "None" : Model.Notes)</dd>
 
     <dt class="col-sm-3">Created At UTC</dt>
-    <dd class="col-sm-9">@Model.CreatedAtUtc.ToString("u")</dd>
+    <dd class="col-sm-9">@Model.CreatedAtUtc.ToString("yyyy-MM-dd HH:mm:ss")</dd>
 
     <dt class="col-sm-3">Updated At UTC</dt>
-    <dd class="col-sm-9">@(Model.UpdatedAtUtc?.ToString("u") ?? "Not updated")</dd>
+    <dd class="col-sm-9">@(Model.UpdatedAtUtc?.ToString("yyyy-MM-dd HH:mm:ss") ?? "Not updated")</dd>
 
     <dt class="col-sm-3">Deleted At UTC</dt>
-    <dd class="col-sm-9">@(Model.DeletedAtUtc?.ToString("u") ?? "Not deleted")</dd>
+    <dd class="col-sm-9">@(Model.DeletedAtUtc?.ToString("yyyy-MM-dd HH:mm:ss") ?? "Not deleted")</dd>
 </dl>
