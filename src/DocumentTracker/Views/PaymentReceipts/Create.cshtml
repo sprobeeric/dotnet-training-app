@@ -4,6 +4,7 @@
     ViewData["Title"] = "Create Payment Receipt";
     var summary = Model.InvoiceSummary;
     var paymentDetailsEnabled = summary?.AllowsPayment == true;
+    var maxPaymentDate = DateOnly.FromDateTime(DateTime.UtcNow).ToString("yyyy-MM-dd");
     string[] paymentMethods = ["Cash", "Bank Transfer", "Check", "Credit Card", "Debit Card"];
 }
 
@@ -99,7 +100,7 @@
                 </div>
                 <div class="col-md-4">
                     <label asp-for="PaymentDate" class="form-label"></label>
-                    <input asp-for="PaymentDate" type="date" class="form-control" disabled="@(!paymentDetailsEnabled)" />
+                    <input asp-for="PaymentDate" type="date" class="form-control" max="@maxPaymentDate" disabled="@(!paymentDetailsEnabled)" />
                     <span asp-validation-for="PaymentDate" class="text-danger"></span>
                 </div>
                 <div class="col-md-4">

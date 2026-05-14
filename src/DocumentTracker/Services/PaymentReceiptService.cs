@@ -332,6 +332,8 @@ public class PaymentReceiptService : IPaymentReceiptService
             result.AddError(nameof(viewModel.PaymentMethod), "Select a valid payment method.");
         }
 
+        AddPaymentDateValidation(result, viewModel);
+
         if (viewModel.InvoiceSummary is not null)
         {
             if (!viewModel.InvoiceSummary.AllowsPayment)
@@ -363,6 +365,8 @@ public class PaymentReceiptService : IPaymentReceiptService
             result.AddError(nameof(viewModel.PaymentMethod), "Select a valid payment method.");
         }
 
+        AddPaymentDateValidation(result, viewModel);
+
         if (viewModel.InvoiceSummary is not null)
         {
             var isSameInvoice = viewModel.InvoiceId == existing.InvoiceId;
@@ -379,6 +383,15 @@ public class PaymentReceiptService : IPaymentReceiptService
         }
 
         return result;
+    }
+
+    private static void AddPaymentDateValidation(ServiceResult result, PaymentReceiptFormViewModel viewModel)
+    {
+        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+        if (viewModel.PaymentDate.HasValue && viewModel.PaymentDate.Value > today)
+        {
+            result.AddError(nameof(viewModel.PaymentDate), "Payment date cannot be in the future.");
+        }
     }
 
     private static void AddValidationErrors(ServiceResult result, object instance)
