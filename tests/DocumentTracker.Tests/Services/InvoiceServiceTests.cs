@@ -1,7 +1,9 @@
 using DocumentTracker.Models;
 using DocumentTracker.Repositories;
 using DocumentTracker.Services;
+using DocumentTracker.ViewModels;
 using Moq;
+using Microsoft.Extensions.Logging;
 
 namespace DocumentTracker.Tests.Services;
 
@@ -12,7 +14,8 @@ public class InvoiceServiceTests
     [Fact]
     public async Task GetDeleteAsync_WhenInvoiceNotFound_ReturnsNull()
     {
-        var service = new InvoiceService(_repository.Object);
+        var logger = new Mock<ILogger<InvoiceService>>();
+        var service = new InvoiceService(_repository.Object, logger.Object);
         _repository.Setup(r => r.GetByIdAsync(99)).ReturnsAsync((Invoice?)null);
 
         var result = await service.GetDeleteAsync(99);
@@ -23,7 +26,8 @@ public class InvoiceServiceTests
     [Fact]
     public async Task GetDeleteAsync_WhenInvoiceAlreadyDeleted_ReturnsNull()
     {
-        var service = new InvoiceService(_repository.Object);
+        var logger = new Mock<ILogger<InvoiceService>>();
+        var service = new InvoiceService(_repository.Object, logger.Object);
         _repository.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(new Invoice
         {
             Id = 1,
@@ -39,7 +43,8 @@ public class InvoiceServiceTests
     [Fact]
     public async Task GetDeleteAsync_WhenInvoiceExists_ReturnsMappedViewModel()
     {
-        var service = new InvoiceService(_repository.Object);
+        var logger = new Mock<ILogger<InvoiceService>>();
+        var service = new InvoiceService(_repository.Object, logger.Object);
         _repository.Setup(r => r.GetByIdAsync(5)).ReturnsAsync(new Invoice
         {
             Id = 5,
@@ -63,8 +68,8 @@ public class InvoiceServiceTests
     [Fact]
     public async Task SoftDeleteAsync_WhenRoleIsNotInvoiceAdmin_ReturnsFailure()
     {
-        var service = new InvoiceService(_repository.Object);
-
+        var logger = new Mock<ILogger<InvoiceService>>();
+        var service = new InvoiceService(_repository.Object, logger.Object);
         var result = await service.SoftDeleteAsync(1, null);
 
         Assert.False(result.Succeeded);
@@ -74,7 +79,8 @@ public class InvoiceServiceTests
     [Fact]
     public async Task SoftDeleteAsync_WhenInvoiceNotFound_ReturnsFailure()
     {
-        var service = new InvoiceService(_repository.Object);
+        var logger = new Mock<ILogger<InvoiceService>>();
+        var service = new InvoiceService(_repository.Object, logger.Object);
         _repository.Setup(r => r.GetByIdAsync(99)).ReturnsAsync((Invoice?)null);
 
         var result = await service.SoftDeleteAsync(99, InvoiceRoles.InvoiceAdmin);
@@ -86,7 +92,8 @@ public class InvoiceServiceTests
     [Fact]
     public async Task SoftDeleteAsync_WhenInvoiceAlreadyDeleted_ReturnsFailure()
     {
-        var service = new InvoiceService(_repository.Object);
+        var logger = new Mock<ILogger<InvoiceService>>();
+        var service = new InvoiceService(_repository.Object, logger.Object);
         _repository.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(new Invoice
         {
             Id = 1,
@@ -102,7 +109,8 @@ public class InvoiceServiceTests
     [Fact]
     public async Task SoftDeleteAsync_WhenRepositoryReturnsFalse_ReturnsFailure()
     {
-        var service = new InvoiceService(_repository.Object);
+        var logger = new Mock<ILogger<InvoiceService>>();
+        var service = new InvoiceService(_repository.Object, logger.Object);
         _repository.Setup(r => r.GetByIdAsync(2)).ReturnsAsync(new Invoice { Id = 2 });
         _repository.Setup(r => r.SoftDeleteAsync(2, It.IsAny<DateTime>())).ReturnsAsync(false);
 
@@ -115,7 +123,8 @@ public class InvoiceServiceTests
     [Fact]
     public async Task SoftDeleteAsync_WhenSuccessful_ReturnsSuccess()
     {
-        var service = new InvoiceService(_repository.Object);
+        var logger = new Mock<ILogger<InvoiceService>>();
+        var service = new InvoiceService(_repository.Object, logger.Object);
         _repository.Setup(r => r.GetByIdAsync(3)).ReturnsAsync(new Invoice { Id = 3 });
         _repository.Setup(r => r.SoftDeleteAsync(3, It.IsAny<DateTime>())).ReturnsAsync(true);
 
@@ -129,7 +138,8 @@ public class InvoiceServiceTests
     {
         var invoiceDateFrom = new DateOnly(2026, 5, 1);
         var invoiceDateTo = new DateOnly(2026, 5, 31);
-        var service = new InvoiceService(_repository.Object);
+        var logger = new Mock<ILogger<InvoiceService>>();
+        var service = new InvoiceService(_repository.Object, logger.Object);
 
         _repository
             .Setup(repository => repository.SearchAsync("INV", invoiceDateFrom, invoiceDateTo, "total", "desc", 2, 10))
@@ -159,5 +169,104 @@ public class InvoiceServiceTests
         Assert.Equal(250m, invoice.TotalAmount);
         Assert.Equal(InvoiceStatus.Sent, invoice.Status);
         Assert.Equal(12, result.TotalCount);
+    }
+
+    [Fact]
+    public async Task CreateAsync_WithValidInvoice_CreatesInvoice()
+    {
+        var repository = new Mock<IInvoiceRepository>();
+        var logger = new Mock<ILogger<InvoiceService>>();
+        var service = new InvoiceService(repository.Object, logger.Object);
+
+        var viewModel = new InvoiceCreateViewModel
+        {
+            InvoiceNumber = "INV-100",
+            CustomerName = "ACME",
+            InvoiceDate = new DateOnly(2026, 5, 1),
+            DueDate = new DateOnly(2026, 5, 15),
+            Status = InvoiceStatus.Sent,
+            Subtotal = 100m,
+            TaxAmount = 12m
+        };
+
+        repository
+            .Setup(repository => repository.InvoiceNumberExistsAsync("INV-100", null))
+            .ReturnsAsync(false);
+
+        repository
+            .Setup(repository => repository.CreateAsync(It.IsAny<Invoice>()))
+            .ReturnsAsync(10);
+
+        var result = await service.CreateAsync(viewModel);
+
+        Assert.True(result.Succeeded);
+        Assert.Equal(10, result.Value);
+
+        repository.Verify(
+            repository => repository.CreateAsync(It.Is<Invoice>(invoice =>
+                invoice.InvoiceNumber == "INV-100" &&
+                invoice.CustomerName == "ACME" &&
+                invoice.InvoiceDate == new DateOnly(2026, 5, 1) &&
+                invoice.DueDate == new DateOnly(2026, 5, 15) &&
+                invoice.Status == InvoiceStatus.Sent &&
+                invoice.Subtotal == 100m &&
+                invoice.TaxAmount == 12m &&
+                invoice.TotalAmount == 112m)),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task CreateAsync_WithDuplicateInvoiceNumber_ReturnsValidationError()
+    {
+        var repository = new Mock<IInvoiceRepository>();
+        var logger = new Mock<ILogger<InvoiceService>>();
+        var service = new InvoiceService(repository.Object, logger.Object);
+
+        var viewModel = new InvoiceCreateViewModel
+        {
+            InvoiceNumber = "INV-100",
+            CustomerName = "ACME",
+            InvoiceDate = new DateOnly(2026, 5, 1),
+            DueDate = new DateOnly(2026, 5, 15),
+            Status = InvoiceStatus.Sent,
+            Subtotal = 100m,
+            TaxAmount = 12m
+        };
+
+        repository
+            .Setup(repository => repository.InvoiceNumberExistsAsync("INV-100", null))
+            .ReturnsAsync(true);
+
+        var result = await service.CreateAsync(viewModel);
+
+        Assert.False(result.Succeeded);
+        Assert.Contains(result.Errors, error => error.Key == nameof(InvoiceCreateViewModel.InvoiceNumber));
+        repository.Verify(repository => repository.CreateAsync(It.IsAny<Invoice>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task CreateAsync_WhenDueDateIsBeforeInvoiceDate_ReturnsValidationError()
+    {
+        var repository = new Mock<IInvoiceRepository>();
+        var logger = new Mock<ILogger<InvoiceService>>();
+        var service = new InvoiceService(repository.Object, logger.Object);
+    
+        var viewModel = new InvoiceCreateViewModel
+        {
+            InvoiceNumber = "INV-100",
+            CustomerName = "ACME",
+            InvoiceDate = new DateOnly(2026, 5, 15),
+            DueDate = new DateOnly(2026, 5, 1),
+            Status = InvoiceStatus.Sent,
+            Subtotal = 100m,
+            TaxAmount = 12m
+        };
+    
+        var result = await service.CreateAsync(viewModel);
+    
+        Assert.False(result.Succeeded);
+        Assert.Contains(result.Errors, error => error.Key == nameof(InvoiceCreateViewModel.DueDate));
+        repository.Verify(repository => repository.InvoiceNumberExistsAsync(It.IsAny<string>(), It.IsAny<int?>()), Times.Never);
+        repository.Verify(repository => repository.CreateAsync(It.IsAny<Invoice>()), Times.Never);
     }
 }

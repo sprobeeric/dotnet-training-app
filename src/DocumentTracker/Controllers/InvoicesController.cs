@@ -14,7 +14,7 @@ public class InvoicesController : Controller
     private const string DefaultSortBy = "updated";
     private const string DefaultSortDirection = "desc";
 
-     public InvoicesController(
+    public InvoicesController(
         IInvoiceService invoiceService,
         ICurrentUserRoleProvider roleProvider,
         ILogger<InvoicesController> logger)
@@ -59,6 +59,44 @@ public class InvoicesController : Controller
         });
     }
 
+    public IActionResult Create()
+    {
+        var viewModel = new InvoiceCreateViewModel
+        {
+            InvoiceDate = DateOnly.FromDateTime(DateTime.Today),
+            DueDate = DateOnly.FromDateTime(DateTime.Today)
+        };
+
+        return View(viewModel);
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> Create(InvoiceCreateViewModel viewModel)
+    {
+      if (!ModelState.IsValid)
+      {
+          return View(viewModel);
+      }
+
+      var result = await _invoiceService.CreateAsync(viewModel);
+      if (!result.Succeeded)
+      {
+          AddServiceErrors(result);
+          return View(viewModel);
+      }
+
+       return RedirectToAction(nameof(Index));
+    }
+
+    private void AddServiceErrors(ServiceResult result)
+    {
+        foreach (var error in result.Errors)
+        {
+            ModelState.AddModelError(error.Key, error.Message);
+        }
+    }
+
     public async Task<IActionResult> Delete(int id)
     {
         var invoice = await _invoiceService.GetDeleteAsync(id);
@@ -81,13 +119,5 @@ public class InvoicesController : Controller
         }
 
         return RedirectToAction(nameof(Index));
-    }
-
-    private void AddServiceErrors(ServiceResult result)
-    {
-        foreach (var error in result.Errors)
-        {
-            ModelState.AddModelError(error.Key, error.Message);
-        }
     }
 }
