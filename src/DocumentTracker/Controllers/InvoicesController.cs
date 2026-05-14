@@ -6,14 +6,22 @@ namespace DocumentTracker.Controllers;
 
 public class InvoicesController : Controller
 {
+    private readonly IInvoiceService _invoiceService;
+    private readonly ICurrentUserRoleProvider _roleProvider;
+    private readonly ILogger<InvoicesController> _logger;
+
     private const int PageSize = 5;
     private const string DefaultSortBy = "updated";
     private const string DefaultSortDirection = "desc";
-    private readonly IInvoiceService _invoiceService;
 
-    public InvoicesController(IInvoiceService invoiceService)
+    public InvoicesController(
+        IInvoiceService invoiceService,
+        ICurrentUserRoleProvider roleProvider,
+        ILogger<InvoicesController> logger)
     {
         _invoiceService = invoiceService;
+        _roleProvider = roleProvider;
+        _logger = logger;
     }
 
     public async Task<IActionResult> Index(
@@ -62,6 +70,17 @@ public class InvoicesController : Controller
 
         return View(result.Value);
     }
+    [HttpGet]
+    public IActionResult Create()
+    {
+        var viewModel = new InvoiceCreateViewModel
+        {
+            InvoiceDate = DateOnly.FromDateTime(DateTime.Today),
+            DueDate = DateOnly.FromDateTime(DateTime.Today)
+        };
+
+        return View(viewModel);
+    }
 
     [HttpPost]
     [ValidateAntiForgeryToken]
@@ -85,11 +104,55 @@ public class InvoicesController : Controller
         }
         return RedirectToAction(nameof(Index));
     }
+    
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> Create(InvoiceCreateViewModel viewModel)
+    {
+      if (!ModelState.IsValid)
+      {
+          return View(viewModel);
+      }
+
+      var result = await _invoiceService.CreateAsync(viewModel);
+      if (!result.Succeeded)
+      {
+          AddServiceErrors(result);
+          return View(viewModel);
+      }
+
+       return RedirectToAction(nameof(Index));
+    }
+
     private void AddServiceErrors(ServiceResult result)
     {
         foreach (var error in result.Errors)
         {
             ModelState.AddModelError(error.Key, error.Message);
         }
+    }
+
+    public async Task<IActionResult> Delete(int id)
+    {
+        var invoice = await _invoiceService.GetDeleteAsync(id);
+        return invoice is null ? NotFound() : View(invoice);
+    }
+
+    [HttpPost]
+    [ActionName("Delete")]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> DeleteConfirmed(int id)
+    {
+        var result = await _invoiceService.SoftDeleteAsync(id, _roleProvider.GetCurrentRole());
+        if (!result.Succeeded)
+        {
+            _logger.LogWarning("Soft delete was rejected for invoice id {InvoiceId}.", id);
+            AddServiceErrors(result);
+
+            var invoice = await _invoiceService.GetDeleteAsync(id);
+            return invoice is null ? View("ErrorMessage") : View(invoice);
+        }
+
+        return RedirectToAction(nameof(Index));
     }
 }

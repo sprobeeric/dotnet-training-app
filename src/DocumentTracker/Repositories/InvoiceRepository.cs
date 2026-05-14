@@ -43,25 +43,6 @@ public class InvoiceRepository : IInvoiceRepository
         _logger.LogInformation("Updated Invoice with id {InvoiceId}. Rows affected: {RowsAffected}.", invoice.Id, rows);
         return rows == 1;
     }
-
-    private static object ToParameters(Invoice invoice)
-    {
-        return new
-        {
-            invoice.Id,
-            invoice.InvoiceNumber,
-            invoice.CustomerName,
-            InvoiceDate = invoice.InvoiceDate.ToDateTime(TimeOnly.MinValue),
-            DueDate = invoice.DueDate.ToDateTime(TimeOnly.MinValue),
-            Status = invoice.Status.ToString(),
-            invoice.Subtotal,
-            invoice.TaxAmount,
-            invoice.TotalAmount,
-            invoice.Notes,
-            invoice.CreatedAtUtc,
-            invoice.UpdatedAtUtc
-        };
-    }
     public async Task<PagedResult<Invoice>> SearchAsync(
         string? searchTerm,
         DateOnly? invoiceDateFrom,
@@ -124,5 +105,65 @@ public class InvoiceRepository : IInvoiceRepository
             "total" => $"total_amount {normalizedDirection}, id {normalizedDirection}",
             _ => "COALESCE(updated_at_utc, created_at_utc) DESC, id DESC"
         };
+    }
+
+    public async Task<bool> InvoiceNumberExistsAsync(string invoiceNumber, int? excludeId = null)
+    {
+        await using var connection = await _dataSource.OpenConnectionAsync();
+        return await connection.ExecuteScalarAsync<bool>(
+            InvoiceSql.InvoiceNumberExists,
+            new
+            {
+                InvoiceNumber = invoiceNumber.Trim(),
+                ExcludeId = excludeId
+            });
+    }
+
+    public async Task<int> CreateAsync(Invoice invoice)
+    {
+        await using var connection = await _dataSource.OpenConnectionAsync();
+        await using var transaction = await connection.BeginTransactionAsync();
+
+        var id = await connection.ExecuteScalarAsync<int>(
+            InvoiceSql.InsertInvoice,
+            ToParameters(invoice),
+            transaction);
+
+        await transaction.CommitAsync();
+        _logger.LogInformation("Created invoice with id {InvoiceId}.", id);
+        return id;
+    }
+
+    private static object ToParameters(Invoice invoice)
+    {
+        return new
+        {
+            invoice.Id,
+            invoice.InvoiceNumber,
+            invoice.CustomerName,
+            InvoiceDate = invoice.InvoiceDate.ToDateTime(TimeOnly.MinValue),
+            DueDate = invoice.DueDate.ToDateTime(TimeOnly.MinValue),
+            Status = invoice.Status.ToString(),
+            invoice.Subtotal,
+            invoice.TaxAmount,
+            invoice.TotalAmount,
+            invoice.Notes,
+            invoice.CreatedAtUtc,
+            invoice.UpdatedAtUtc
+        };
+    }
+    public async Task<bool> SoftDeleteAsync(int id, DateTime deletedAtUtc)
+    {
+        await using var connection = await _dataSource.OpenConnectionAsync();
+        await using var transaction = await connection.BeginTransactionAsync();
+
+        var rows = await connection.ExecuteAsync(
+            InvoiceSql.SoftDeleteInvoice,
+            new { Id = id, DeletedAtUtc = deletedAtUtc },
+            transaction);
+
+        await transaction.CommitAsync();
+        _logger.LogInformation("Soft deleted invoice with id {InvoiceId}. Rows affected: {RowsAffected}.", id, rows);
+        return rows == 1;
     }
 }

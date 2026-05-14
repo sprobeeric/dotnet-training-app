@@ -1,0 +1,39 @@
+@model InvoiceDeleteViewModel
+
+@{
+    ViewData["Title"] = "Delete Invoice";
+}
+
+<h1 class="h3 mb-3">Delete Invoice</h1>
+
+<div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+
+<div class="alert alert-warning">
+    Confirm that this invoice should be soft deleted. The row will remain in the database with DeletedAtUtc set.
+</div>
+
+<dl class="row">
+    <dt class="col-sm-3">Invoice Number</dt>
+    <dd class="col-sm-9">@Model.InvoiceNumber</dd>
+
+    <dt class="col-sm-3">Customer</dt>
+    <dd class="col-sm-9">@Model.CustomerName</dd>
+
+    <dt class="col-sm-3">Invoice Date</dt>
+    <dd class="col-sm-9">@Model.InvoiceDate.ToString("yyyy-MM-dd")</dd>
+
+    <dt class="col-sm-3">Due Date</dt>
+    <dd class="col-sm-9">@Model.DueDate.ToString("yyyy-MM-dd")</dd>
+
+    <dt class="col-sm-3">Status</dt>
+    <dd class="col-sm-9">@Model.Status</dd>
+
+    <dt class="col-sm-3">Total Amount</dt>
+    <dd class="col-sm-9">@Model.TotalAmount</dd>
+</dl>
+
+<form asp-action="Delete" asp-route-id="@Model.Id" method="post">
+    @Html.AntiForgeryToken()
+    <button type="submit" class="btn btn-danger">Delete</button>
+    <a asp-action="Index" class="btn btn-outline-secondary">Cancel</a>
+</form>
