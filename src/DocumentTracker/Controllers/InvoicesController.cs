@@ -86,7 +86,7 @@ public class InvoicesController : Controller
           return View(viewModel);
       }
 
-       return RedirectToAction(nameof(Details), new { id = result.Value });
+       return RedirectToAction(nameof(Index));
     }
 
     private void AddServiceErrors(ServiceResult result)
