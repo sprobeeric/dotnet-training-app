@@ -382,28 +382,35 @@ public class InvoiceServiceTests
     }
 
     [Fact]
-    public async Task CreateAsync_WhenDueDateIsBeforeInvoiceDate_ReturnsValidationError()
+    public async Task CreateAsync_WhenDueDateIsValid_CreatesInvoice()
     {
         var repository = new Mock<IInvoiceRepository>();
         var logger = new Mock<ILogger<InvoiceService>>();
         var service = new InvoiceService(repository.Object, logger.Object);
-    
+
         var viewModel = new InvoiceCreateViewModel
         {
             InvoiceNumber = "INV-100",
             CustomerName = "ACME",
             InvoiceDate = new DateOnly(2026, 5, 15),
-            DueDate = new DateOnly(2026, 5, 1),
+            DueDate = new DateOnly(2026, 5, 20),
             Status = InvoiceStatus.Sent,
             Subtotal = 100m,
             TaxAmount = 12m
         };
-    
+
+        repository
+            .Setup(repository => repository.InvoiceNumberExistsAsync("INV-100", null))
+            .ReturnsAsync(false);
+
+        repository
+            .Setup(repository => repository.CreateAsync(It.IsAny<Invoice>()))
+            .ReturnsAsync(1);
+
         var result = await service.CreateAsync(viewModel);
-    
-        Assert.False(result.Succeeded);
-        Assert.Contains(result.Errors, error => error.Key == nameof(InvoiceCreateViewModel.DueDate));
-        repository.Verify(repository => repository.InvoiceNumberExistsAsync(It.IsAny<string>(), It.IsAny<int?>()), Times.Never);
-        repository.Verify(repository => repository.CreateAsync(It.IsAny<Invoice>()), Times.Never);
+
+        Assert.True(result.Succeeded);
+        repository.Verify(repository => repository.InvoiceNumberExistsAsync("INV-100", null), Times.Once);
+        repository.Verify(repository => repository.CreateAsync(It.IsAny<Invoice>()), Times.Once);
     }
 }

@@ -3,7 +3,7 @@ using DocumentTracker.Models;
 
 namespace DocumentTracker.ViewModels;
 
-public abstract class InvoiceFormViewModel
+public abstract class InvoiceFormViewModel : IValidatableObject
 {
     [Display(Name = "Invoice Number")]
     [Required]
@@ -44,4 +44,14 @@ public abstract class InvoiceFormViewModel
     [Display(Name = "Notes")]
     [StringLength(1000)]
     public string? Notes { get; set; }
+
+    public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
+    {
+        if (DueDate < InvoiceDate)
+        {
+            yield return new ValidationResult(
+                "Due date must be on or after the invoice date.",
+                [nameof(DueDate)]);
+        }
+    }
 }
