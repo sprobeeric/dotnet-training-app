@@ -12,6 +12,68 @@ public class InvoiceServiceTests
     private readonly Mock<IInvoiceRepository> _repository = new();
 
     [Fact]
+    public async Task GetDetailsAsync_WhenInvoiceNotFound_ReturnsNull()
+    {
+        var logger = new Mock<ILogger<InvoiceService>>();
+        var service = new InvoiceService(_repository.Object, logger.Object);
+        _repository.Setup(r => r.GetByIdAsync(99)).ReturnsAsync((Invoice?)null);
+
+        var result = await service.GetDetailsAsync(99);
+
+        Assert.Null(result);
+    }
+
+    [Fact]
+    public async Task GetDetailsAsync_WhenInvoiceAlreadyDeleted_ReturnsNull()
+    {
+        var logger = new Mock<ILogger<InvoiceService>>();
+        var service = new InvoiceService(_repository.Object, logger.Object);
+        _repository.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(new Invoice
+        {
+            Id = 1,
+            InvoiceNumber = "INV-001",
+            DeletedAtUtc = new DateTime(2026, 5, 1, 0, 0, 0, DateTimeKind.Utc)
+        });
+
+        var result = await service.GetDetailsAsync(1);
+
+        Assert.Null(result);
+    }
+
+    [Fact]
+    public async Task GetDetailsAsync_WhenInvoiceExists_ReturnsMappedViewModel()
+    {
+        var logger = new Mock<ILogger<InvoiceService>>();
+        var service = new InvoiceService(_repository.Object, logger.Object);
+        _repository.Setup(r => r.GetByIdAsync(5)).ReturnsAsync(new Invoice
+        {
+            Id = 5,
+            InvoiceNumber = "INV-005",
+            CustomerName = "Contoso",
+            InvoiceDate = new DateOnly(2026, 5, 1),
+            DueDate = new DateOnly(2026, 5, 31),
+            Status = InvoiceStatus.Sent,
+            Subtotal = 450m,
+            TaxAmount = 50m,
+            TotalAmount = 500m,
+            Notes = "Due by month end.",
+            CreatedAtUtc = new DateTime(2026, 5, 1, 13, 0, 0, DateTimeKind.Utc),
+            UpdatedAtUtc = new DateTime(2026, 5, 2, 14, 0, 0, DateTimeKind.Utc)
+        });
+
+        var result = await service.GetDetailsAsync(5);
+
+        Assert.NotNull(result);
+        Assert.Equal(5, result.Id);
+        Assert.Equal("INV-005", result.InvoiceNumber);
+        Assert.Equal("Contoso", result.CustomerName);
+        Assert.Equal(450m, result.Subtotal);
+        Assert.Equal(50m, result.TaxAmount);
+        Assert.Equal(500m, result.TotalAmount);
+        Assert.Equal("Due by month end.", result.Notes);
+    }
+
+    [Fact]
     public async Task GetDeleteAsync_WhenInvoiceNotFound_ReturnsNull()
     {
         var logger = new Mock<ILogger<InvoiceService>>();

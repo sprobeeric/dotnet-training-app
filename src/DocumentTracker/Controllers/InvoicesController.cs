@@ -59,6 +59,12 @@ public class InvoicesController : Controller
         });
     }
 
+    public async Task<IActionResult> Details(int id)
+    {
+        var invoice = await _invoiceService.GetDetailsAsync(id);
+        return invoice is null ? NotFound() : View(invoice);
+    }
+
     public IActionResult Create()
     {
         var viewModel = new InvoiceCreateViewModel
@@ -86,7 +92,7 @@ public class InvoicesController : Controller
           return View(viewModel);
       }
 
-       return RedirectToAction(nameof(Index));
+       return RedirectToAction(nameof(Details), new { id = result.Value });
     }
 
     private void AddServiceErrors(ServiceResult result)
