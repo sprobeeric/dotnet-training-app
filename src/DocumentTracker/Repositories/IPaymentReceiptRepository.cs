@@ -11,4 +11,5 @@ public interface IPaymentReceiptRepository
     Task<bool> InvoiceExistsAndPendingAsync(int invoiceId);
     Task<int> CreateAsync(PaymentReceipt paymentReceipt);
     Task<bool> SoftDeleteAsync(int id, DateTime deletedAtUtc);
+    Task<bool> UpdateAsync(PaymentReceipt paymentReceipt);
 }

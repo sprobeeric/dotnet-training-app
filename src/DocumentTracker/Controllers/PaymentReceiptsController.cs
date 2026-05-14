@@ -19,7 +19,7 @@ public class PaymentReceiptsController : Controller
     {
         _paymentReceiptService = paymentReceiptService;
         _createPageService = createPageService;
-         _roleProvider = roleProvider;
+        _roleProvider = roleProvider;
         _logger = logger;
     }
 
@@ -79,8 +79,8 @@ public class PaymentReceiptsController : Controller
 
     public async Task<IActionResult> Delete(int id)
     {
-        var document = await _paymentReceiptService.GetDeleteAsync(id);
-        return document is null ? NotFound() : View(document);
+        var receipt = await _paymentReceiptService.GetDeleteAsync(id);
+        return receipt is null ? NotFound() : View(receipt);
     }
 
     [HttpPost]
@@ -94,11 +94,56 @@ public class PaymentReceiptsController : Controller
             _logger.LogWarning("Soft delete was rejected for payment receipt id {PaymentReceiptId}.", id);
             AddServiceErrors(result);
 
-            var document = await _paymentReceiptService.GetDeleteAsync(id);
-            return document is null ? View("ErrorMessage") : View(document);
+            var receipt = await _paymentReceiptService.GetDeleteAsync(id);
+            return receipt is null ? View("ErrorMessage") : View(receipt);
         }
 
         return RedirectToAction(nameof(Index));
+    }
+
+    public async Task<IActionResult> Edit(int id, string? invoiceNumber)
+    {
+        var result = await _paymentReceiptService.GetEditAsync(id);
+        if (!result.Succeeded || result.Value is null)
+        {
+            AddServiceErrors(result);
+            return View("ErrorMessage");
+        }
+
+        if (!string.IsNullOrWhiteSpace(invoiceNumber))
+        {
+            result.Value.InvoiceNumber = invoiceNumber.Trim();
+            await _createPageService.PopulateInvoiceSummaryAsync(result.Value);
+        }
+
+        return View(result.Value);
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> Edit(int id, PaymentReceiptEditViewModel viewModel)
+    {
+        if (id != viewModel.Id)
+        {
+            return BadRequest();
+        }
+
+        if (!ModelState.IsValid)
+        {
+            await _createPageService.PopulateInvoiceSummaryAsync(viewModel);
+            return View(viewModel);
+        }
+
+        var result = await _paymentReceiptService.UpdateAsync(viewModel);
+        if (!result.Succeeded)
+        {
+            AddServiceErrors(result);
+            await _createPageService.PopulateInvoiceSummaryAsync(viewModel);
+            return View(viewModel);
+        }
+
+        TempData["SuccessMessage"] = "Payment receipt updated.";
+        return RedirectToAction(nameof(Details), new { id = viewModel.Id });
     }
 
     private void AddServiceErrors(ServiceResult result)

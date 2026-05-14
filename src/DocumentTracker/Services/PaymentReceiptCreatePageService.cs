@@ -25,7 +25,7 @@ public class PaymentReceiptCreatePageService : IPaymentReceiptCreatePageService
         return viewModel;
     }
 
-    public async Task PopulateInvoiceSummaryAsync(PaymentReceiptCreateViewModel viewModel)
+    public async Task PopulateInvoiceSummaryAsync(PaymentReceiptFormViewModel viewModel)
     {
         if (string.IsNullOrWhiteSpace(viewModel.InvoiceNumber))
         {

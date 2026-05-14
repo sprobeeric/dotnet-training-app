@@ -1,18 +1,21 @@
-@model PaymentReceiptCreateViewModel
+@model PaymentReceiptEditViewModel
 
 @{
-    ViewData["Title"] = "Create Payment Receipt";
+    ViewData["Title"] = "Edit Payment Receipt";
     var summary = Model.InvoiceSummary;
-    var paymentDetailsEnabled = summary?.AllowsPayment == true;
+    var paymentDetailsEnabled = summary is not null;
+    var availableBalance = summary is null ? 0m : summary.RemainingBalance + (summary.InvoiceId == Model.ExistingInvoiceId ? Model.AmountPaid ?? 0m : 0m);
     var maxPaymentDate = DateOnly.FromDateTime(DateTime.UtcNow).ToString("yyyy-MM-dd");
     string[] paymentMethods = ["Cash", "Bank Transfer", "Check", "Credit Card", "Debit Card"];
 }
 
-<h1 class="h3 mb-3">Create Payment Receipt</h1>
-<p class="text-muted">Look up an invoice, enter the payment details, and save the receipt.</p>
+<h1 class="h3 mb-3">Edit Payment Receipt</h1>
 
-<form asp-action="Create" method="post" class="document-form" data-payment-receipt-create-form data-lookup-url="@Url.Action("Create", "PaymentReceipts")">
+<form asp-action="Edit" asp-route-id="@Model.Id" method="post" class="document-form" data-payment-receipt-create-form data-lookup-url="@Url.Action("Edit", "PaymentReceipts", new { id = Model.Id })">
     @Html.AntiForgeryToken()
+    <input asp-for="Id" type="hidden" />
+    <input asp-for="ExistingInvoiceId" type="hidden" />
+    <input asp-for="InvoiceNumber" type="hidden" />
     <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
 
     <div class="card shadow-sm mb-4">
@@ -21,11 +24,11 @@
             <div class="row g-3 align-items-end">
                 <div class="col-md-8">
                     <label asp-for="InvoiceNumber" class="form-label"></label>
-                    <input asp-for="InvoiceNumber" class="form-control" placeholder="Enter an invoice number" />
+                    <input value="@Model.InvoiceNumber" class="form-control" placeholder="Enter an invoice number" disabled />
                     <span asp-validation-for="InvoiceNumber" class="text-danger"></span>
                 </div>
                 <div class="col-md-4">
-                    <button type="button" class="btn btn-outline-primary" data-invoice-lookup-button>Lookup Invoice</button>
+                    <button type="button" class="btn btn-outline-primary" data-invoice-lookup-button disabled>Lookup Invoice</button>
                 </div>
             </div>
             <input asp-for="InvoiceId" type="hidden" />
@@ -62,19 +65,17 @@
                     <div class="col-lg-4">
                         <div class="border rounded p-3 h-100"
                              data-payment-summary
-                             data-remaining-balance="@summary.RemainingBalance">
+                             data-remaining-balance="@availableBalance">
                             <h3 class="h6 mb-3">Payment Summary</h3>
                             <dl class="row mb-0">
                                 <dt class="col-7">Invoice Total</dt>
                                 <dd class="col-5 text-end">@summary.InvoiceTotal.ToString("N2")</dd>
-                                <dt class="col-7">Previously Paid</dt>
-                                <dd class="col-5 text-end">@summary.PreviouslyPaid.ToString("N2")</dd>
-                                <dt class="col-7">Remaining Balance</dt>
-                                <dd class="col-5 text-end fw-semibold">@summary.RemainingBalance.ToString("N2")</dd>
-                                <dt class="col-7">Current Payment</dt>
+                                <dt class="col-7">Available Balance</dt>
+                                <dd class="col-5 text-end fw-semibold">@availableBalance.ToString("N2")</dd>
+                                <dt class="col-7">Updated Payment</dt>
                                 <dd class="col-5 text-end" data-current-payment>@((Model.AmountPaid ?? 0m).ToString("N2"))</dd>
                                 <dt class="col-7">Balance After Payment</dt>
-                                <dd class="col-5 text-end" data-balance-after-payment>@summary.RemainingBalance.ToString("N2")</dd>
+                                <dd class="col-5 text-end" data-balance-after-payment>@(availableBalance - (Model.AmountPaid ?? 0m)).ToString("N2")</dd>
                             </dl>
                         </div>
                     </div>
@@ -86,12 +87,6 @@
     <div class="card shadow-sm mb-4">
         <div class="card-body">
             <h2 class="h5 mb-3">2. Payment Details</h2>
-            @if (summary is not null && !paymentDetailsEnabled)
-            {
-                <div class="alert alert-warning">
-                    Payment details are only enabled when the invoice status is <strong>Pending</strong>.
-                </div>
-            }
             <div class="row g-3">
                 <div class="col-md-4">
                     <label asp-for="ReceiptNumber" class="form-label"></label>
@@ -134,8 +129,8 @@
     </div>
 
     <div class="mt-3">
-        <button type="submit" class="btn btn-primary" disabled="@(!paymentDetailsEnabled)">Save Receipt</button>
-        <a asp-action="Index" class="btn btn-outline-secondary">Cancel</a>
+        <button type="submit" class="btn btn-primary" disabled="@(!paymentDetailsEnabled)">Save</button>
+        <a asp-action="Details" asp-route-id="@Model.Id" class="btn btn-outline-secondary">Cancel</a>
     </div>
 </form>
 

@@ -4,6 +4,7 @@
 const initializePaymentReceiptCreate = () => {
     const form = document.querySelector("[data-payment-receipt-create-form]");
     const lookupButton = document.querySelector("[data-invoice-lookup-button]");
+    const receiptNumberInput = document.querySelector("#ReceiptNumber");
     const amountPaidInput = document.querySelector("[data-amount-paid-input]");
     const paymentMethodInput = document.querySelector("[data-payment-method-input]");
     const referenceNumberInput = document.querySelector("[data-reference-number-input]");
@@ -68,8 +69,24 @@ const initializePaymentReceiptCreate = () => {
         }
     };
 
+    const uppercaseInputValue = (input) => {
+        if (!(input instanceof HTMLInputElement)) {
+            return;
+        }
+
+        const selectionStart = input.selectionStart;
+        const selectionEnd = input.selectionEnd;
+        input.value = input.value.toUpperCase();
+
+        if (selectionStart !== null && selectionEnd !== null) {
+            input.setSelectionRange(selectionStart, selectionEnd);
+        }
+    };
+
     amountPaidInput?.addEventListener("input", updatePaymentSummary);
     paymentMethodInput?.addEventListener("change", updateReferenceNumberState);
+    receiptNumberInput?.addEventListener("input", () => uppercaseInputValue(receiptNumberInput));
+    referenceNumberInput?.addEventListener("input", () => uppercaseInputValue(referenceNumberInput));
     updatePaymentSummary();
     updateReferenceNumberState();
 };

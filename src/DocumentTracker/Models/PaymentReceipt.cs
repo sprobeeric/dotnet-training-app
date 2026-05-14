@@ -9,6 +9,7 @@ public class PaymentReceipt
     public string CustomerName { get; set; } = string.Empty;
     public DateOnly PaymentDate { get; set; }
     public decimal AmountPaid { get; set; }
+    public decimal OutstandingBalance { get; set; }
     public string PaymentMethod { get; set; } = string.Empty;
     public string? ReferenceNumber { get; set; }
     public string? Notes { get; set; }

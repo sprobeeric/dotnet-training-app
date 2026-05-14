@@ -10,6 +10,12 @@ public static class PaymentReceiptSql
         i.customer_name AS CustomerName,
         pr.payment_date AS PaymentDate,
         pr.amount_paid AS AmountPaid,
+        GREATEST(i.total_amount - (
+            SELECT COALESCE(SUM(active_pr.amount_paid), 0)
+            FROM payment_receipts active_pr
+            WHERE active_pr.invoice_id = i.id
+            AND active_pr.deleted_at_utc IS NULL
+        ), 0) AS OutstandingBalance,
         pr.payment_method AS PaymentMethod,
         pr.reference_number AS ReferenceNumber,
         pr.notes AS Notes,
@@ -66,6 +72,24 @@ public static class PaymentReceiptSql
             AND pr.deleted_at_utc IS NULL
             AND pr.id <> @PaymentReceiptId
         );
+        """;
+
+    public const string RecalculateInvoiceStatus = """
+        UPDATE invoices i
+        SET status = CASE
+                WHEN COALESCE((
+                    SELECT SUM(pr.amount_paid)
+                    FROM payment_receipts pr
+                    WHERE pr.invoice_id = i.id
+                    AND pr.deleted_at_utc IS NULL
+                ), 0) >= i.total_amount
+                    THEN 'Paid'
+                ELSE 'Pending'
+            END,
+            updated_at_utc = @UpdatedAtUtc
+        WHERE i.id = @InvoiceId
+        AND i.deleted_at_utc IS NULL
+        AND i.status IN ('Pending', 'Paid');
         """;
 
     public static string SearchPaymentReceipts(string sortBy, string orderBy) => $"""
@@ -136,21 +160,24 @@ public static class PaymentReceiptSql
         RETURNING invoice_id;
         """;
 
-    public const string RecalculateInvoiceStatusAfterReceiptDelete = """
-        UPDATE invoices i
-        SET status = CASE
-                WHEN COALESCE((
-                    SELECT SUM(pr.amount_paid)
-                    FROM payment_receipts pr
-                    WHERE pr.invoice_id = i.id
-                    AND pr.deleted_at_utc IS NULL
-                ), 0) >= i.total_amount
-                    THEN 'Paid'
-                ELSE 'Pending'
-            END,
+    public const string GetInvoiceIdForReceipt = """
+        SELECT invoice_id
+        FROM payment_receipts
+        WHERE id = @Id
+        AND deleted_at_utc IS NULL;
+        """;
+
+    public const string UpdatePaymentReceipt = """
+        UPDATE payment_receipts
+        SET receipt_number = @ReceiptNumber,
+            invoice_id = @InvoiceId,
+            payment_date = @PaymentDate,
+            amount_paid = @AmountPaid,
+            payment_method = @PaymentMethod,
+            reference_number = @ReferenceNumber,
+            notes = @Notes,
             updated_at_utc = @UpdatedAtUtc
-        WHERE i.id = @InvoiceId
-        AND i.deleted_at_utc IS NULL
-        AND i.status IN ('Pending', 'Paid');
+        WHERE id = @Id
+        AND deleted_at_utc IS NULL;
         """;
 }
