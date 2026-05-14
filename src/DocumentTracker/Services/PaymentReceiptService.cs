@@ -53,11 +53,11 @@ public class PaymentReceiptService : IPaymentReceiptService
 
     public async Task<ServiceResult<int>> CreateAsync(PaymentReceiptCreateViewModel viewModel)
     {
-        viewModel.ReceiptNumber = viewModel.ReceiptNumber.Trim();
+        viewModel.ReceiptNumber = viewModel.ReceiptNumber.Trim().ToUpperInvariant();
         viewModel.InvoiceNumber = viewModel.InvoiceNumber.Trim();
         viewModel.ReferenceNumber = string.Equals(viewModel.PaymentMethod, "Cash", StringComparison.Ordinal)
             ? null
-            : string.IsNullOrWhiteSpace(viewModel.ReferenceNumber) ? null : viewModel.ReferenceNumber.Trim();
+            : string.IsNullOrWhiteSpace(viewModel.ReferenceNumber) ? null : viewModel.ReferenceNumber.Trim().ToUpperInvariant();
         viewModel.Notes = string.IsNullOrWhiteSpace(viewModel.Notes) ? null : viewModel.Notes.Trim();
         await PopulateInvoiceSummaryAsync(viewModel);
 
@@ -180,11 +180,11 @@ public class PaymentReceiptService : IPaymentReceiptService
             return ServiceResult.Failure(string.Empty, "Deleted payment receipts cannot be edited.");
         }
 
-        viewModel.ReceiptNumber = viewModel.ReceiptNumber.Trim();
+        viewModel.ReceiptNumber = viewModel.ReceiptNumber.Trim().ToUpperInvariant();
         viewModel.InvoiceNumber = viewModel.InvoiceNumber.Trim();
         viewModel.ReferenceNumber = string.Equals(viewModel.PaymentMethod, "Cash", StringComparison.Ordinal)
             ? null
-            : string.IsNullOrWhiteSpace(viewModel.ReferenceNumber) ? null : viewModel.ReferenceNumber.Trim();
+            : string.IsNullOrWhiteSpace(viewModel.ReferenceNumber) ? null : viewModel.ReferenceNumber.Trim().ToUpperInvariant();
         viewModel.Notes = string.IsNullOrWhiteSpace(viewModel.Notes) ? null : viewModel.Notes.Trim();
         await PopulateInvoiceSummaryAsync(viewModel);
 
