@@ -20,6 +20,11 @@ public class AppSettingsCurrentUserRoleProvider : ICurrentUserRoleProvider
             return DocumentRoles.DocumentAdmin;
         }
 
+        if (user?.IsInRole(InvoiceRoles.InvoiceAdmin) == true)
+        {
+            return InvoiceRoles.InvoiceAdmin;
+        }
+
         return _configuration["Training:CurrentUserRole"];
     }
 }

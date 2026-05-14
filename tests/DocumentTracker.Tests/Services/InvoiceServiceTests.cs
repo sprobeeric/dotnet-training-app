@@ -61,12 +61,23 @@ public class InvoiceServiceTests
     }
 
     [Fact]
+    public async Task SoftDeleteAsync_WhenRoleIsNotInvoiceAdmin_ReturnsFailure()
+    {
+        var service = new InvoiceService(_repository.Object);
+
+        var result = await service.SoftDeleteAsync(1, null);
+
+        Assert.False(result.Succeeded);
+        Assert.Contains(result.Errors, e => e.Message == "Only users in the InvoiceAdmin role can delete invoices.");
+    }
+
+    [Fact]
     public async Task SoftDeleteAsync_WhenInvoiceNotFound_ReturnsFailure()
     {
         var service = new InvoiceService(_repository.Object);
         _repository.Setup(r => r.GetByIdAsync(99)).ReturnsAsync((Invoice?)null);
 
-        var result = await service.SoftDeleteAsync(99, null);
+        var result = await service.SoftDeleteAsync(99, InvoiceRoles.InvoiceAdmin);
 
         Assert.False(result.Succeeded);
         Assert.Contains(result.Errors, e => e.Message == "The invoice was not found.");
@@ -82,7 +93,7 @@ public class InvoiceServiceTests
             DeletedAtUtc = new DateTime(2026, 5, 1, 0, 0, 0, DateTimeKind.Utc)
         });
 
-        var result = await service.SoftDeleteAsync(1, null);
+        var result = await service.SoftDeleteAsync(1, InvoiceRoles.InvoiceAdmin);
 
         Assert.False(result.Succeeded);
         Assert.Contains(result.Errors, e => e.Message == "This invoice has already been deleted.");
@@ -95,7 +106,7 @@ public class InvoiceServiceTests
         _repository.Setup(r => r.GetByIdAsync(2)).ReturnsAsync(new Invoice { Id = 2 });
         _repository.Setup(r => r.SoftDeleteAsync(2, It.IsAny<DateTime>())).ReturnsAsync(false);
 
-        var result = await service.SoftDeleteAsync(2, null);
+        var result = await service.SoftDeleteAsync(2, InvoiceRoles.InvoiceAdmin);
 
         Assert.False(result.Succeeded);
         Assert.Contains(result.Errors, e => e.Message.Contains("could not be deleted"));
@@ -108,7 +119,7 @@ public class InvoiceServiceTests
         _repository.Setup(r => r.GetByIdAsync(3)).ReturnsAsync(new Invoice { Id = 3 });
         _repository.Setup(r => r.SoftDeleteAsync(3, It.IsAny<DateTime>())).ReturnsAsync(true);
 
-        var result = await service.SoftDeleteAsync(3, null);
+        var result = await service.SoftDeleteAsync(3, InvoiceRoles.InvoiceAdmin);
 
         Assert.True(result.Succeeded);
     }

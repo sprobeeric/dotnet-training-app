@@ -57,6 +57,11 @@ public class InvoiceService : IInvoiceService
 
     public async Task<ServiceResult> SoftDeleteAsync(int id, string? currentRole)
     {
+        if (!string.Equals(currentRole, InvoiceRoles.InvoiceAdmin, StringComparison.Ordinal))
+        {
+            return ServiceResult.Failure(string.Empty, "Only users in the InvoiceAdmin role can delete invoices.");
+        }
+
         var existing = await _repository.GetByIdAsync(id);
         if (existing is null)
         {
