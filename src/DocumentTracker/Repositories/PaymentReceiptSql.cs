@@ -132,6 +132,25 @@ public static class PaymentReceiptSql
         SET deleted_at_utc = @DeletedAtUtc,
             updated_at_utc = @DeletedAtUtc
         WHERE id = @Id
-          AND deleted_at_utc IS NULL;
+        AND deleted_at_utc IS NULL
+        RETURNING invoice_id;
+        """;
+
+    public const string RecalculateInvoiceStatusAfterReceiptDelete = """
+        UPDATE invoices i
+        SET status = CASE
+                WHEN COALESCE((
+                    SELECT SUM(pr.amount_paid)
+                    FROM payment_receipts pr
+                    WHERE pr.invoice_id = i.id
+                    AND pr.deleted_at_utc IS NULL
+                ), 0) >= i.total_amount
+                    THEN 'Paid'
+                ELSE 'Pending'
+            END,
+            updated_at_utc = @UpdatedAtUtc
+        WHERE i.id = @InvoiceId
+        AND i.deleted_at_utc IS NULL
+        AND i.status IN ('Pending', 'Paid');
         """;
 }

@@ -159,6 +159,32 @@ public class PaymentReceiptRepositoryIntegrationTests
         }
     }
 
+    [Fact]
+    public async Task SoftDeleteAsync_WithFullyPaidInvoice_SetsInvoiceBackToPending()
+    {
+        var dataSource = await CreateCleanDataSourceAsync();
+        if (dataSource is null)
+        {
+            return;
+        }
+
+        await using (dataSource)
+        await using (var connection = await dataSource.OpenConnectionAsync())
+        {
+            var invoiceId = await CreateInvoiceAsync(connection, "INV-DELETE-PAID", 1375m);
+            var repository = new PaymentReceiptRepository(dataSource, new Mock<ILogger<PaymentReceiptRepository>>().Object);
+            var receiptId = await repository.CreateAsync(CreateReceipt(invoiceId, "RCT-DELETE-PAID", 1375m));
+
+            var deleted = await repository.SoftDeleteAsync(receiptId, new DateTime(2026, 5, 14, 8, 30, 0, DateTimeKind.Utc));
+            var status = await connection.ExecuteScalarAsync<string>(
+                "SELECT status FROM invoices WHERE id = @InvoiceId;",
+                new { InvoiceId = invoiceId });
+
+            Assert.True(deleted);
+            Assert.Equal("Pending", status);
+        }
+    }
+
     private static async Task<NpgsqlDataSource?> CreateCleanDataSourceAsync()
     {
         var connectionString = Environment.GetEnvironmentVariable("DOCUMENTTRACKER_TEST_CONNECTION_STRING");

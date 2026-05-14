@@ -136,18 +136,48 @@ public class PaymentReceiptRepository : IPaymentReceiptRepository
         return id;
     }
 
-    public async Task<bool> SoftDeleteAsync(int id, DateTime deletedAtUtc)
+   public async Task<bool> SoftDeleteAsync(int id, DateTime deletedAtUtc)
     {
         await using var connection = await _dataSource.OpenConnectionAsync();
         await using var transaction = await connection.BeginTransactionAsync();
 
-        var rows = await connection.ExecuteAsync(
-            PaymentReceiptSql.SoftDeletePaymentReceipt,
-            new { Id = id, DeletedAtUtc = deletedAtUtc },
-            transaction);
+        try
+        {
+            var invoiceId = await connection.ExecuteScalarAsync<int?>(
+                PaymentReceiptSql.SoftDeletePaymentReceipt,
+                new
+                {
+                    Id = id,
+                    DeletedAtUtc = deletedAtUtc
+                },
+                transaction);
 
-        await transaction.CommitAsync();
-        _logger.LogInformation("Soft deleted payment receipt with id {PaymentReceiptId}. Rows affected: {RowsAffected}.", id, rows);
-        return rows == 1;
+            if (invoiceId is null)
+            {
+                await transaction.RollbackAsync();
+
+                _logger.LogInformation("Soft delete skipped for payment receipt with id {PaymentReceiptId}. No rows affected.", id);
+                return false;
+            }
+
+            await connection.ExecuteAsync(
+                PaymentReceiptSql.RecalculateInvoiceStatusAfterReceiptDelete,
+                new
+                {
+                    InvoiceId = invoiceId.Value,
+                    UpdatedAtUtc = deletedAtUtc
+                },
+                transaction);
+
+            await transaction.CommitAsync();
+
+            _logger.LogInformation("Soft deleted payment receipt with id {PaymentReceiptId}.", id);
+            return true;
+        }
+        catch
+        {
+            await transaction.RollbackAsync();
+            throw;
+        }
     }
 }
