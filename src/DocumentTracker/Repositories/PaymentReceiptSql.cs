@@ -68,6 +68,24 @@ public static class PaymentReceiptSql
         );
         """;
 
+    public const string RecalculateInvoiceStatus = """
+        UPDATE invoices i
+        SET status = CASE
+                WHEN COALESCE((
+                    SELECT SUM(pr.amount_paid)
+                    FROM payment_receipts pr
+                    WHERE pr.invoice_id = i.id
+                    AND pr.deleted_at_utc IS NULL
+                ), 0) >= i.total_amount
+                    THEN 'Paid'
+                ELSE 'Pending'
+            END,
+            updated_at_utc = @UpdatedAtUtc
+        WHERE i.id = @InvoiceId
+        AND i.deleted_at_utc IS NULL
+        AND i.status IN ('Pending', 'Paid');
+        """;
+
     public static string SearchPaymentReceipts(string sortBy, string orderBy) => $"""
         SELECT {SelectColumns}
         FROM payment_receipts pr
@@ -136,21 +154,24 @@ public static class PaymentReceiptSql
         RETURNING invoice_id;
         """;
 
-    public const string RecalculateInvoiceStatusAfterReceiptDelete = """
-        UPDATE invoices i
-        SET status = CASE
-                WHEN COALESCE((
-                    SELECT SUM(pr.amount_paid)
-                    FROM payment_receipts pr
-                    WHERE pr.invoice_id = i.id
-                    AND pr.deleted_at_utc IS NULL
-                ), 0) >= i.total_amount
-                    THEN 'Paid'
-                ELSE 'Pending'
-            END,
+    public const string GetInvoiceIdForReceipt = """
+        SELECT invoice_id
+        FROM payment_receipts
+        WHERE id = @Id
+        AND deleted_at_utc IS NULL;
+        """;
+
+    public const string UpdatePaymentReceipt = """
+        UPDATE payment_receipts
+        SET receipt_number = @ReceiptNumber,
+            invoice_id = @InvoiceId,
+            payment_date = @PaymentDate,
+            amount_paid = @AmountPaid,
+            payment_method = @PaymentMethod,
+            reference_number = @ReferenceNumber,
+            notes = @Notes,
             updated_at_utc = @UpdatedAtUtc
-        WHERE i.id = @InvoiceId
-        AND i.deleted_at_utc IS NULL
-        AND i.status IN ('Pending', 'Paid');
+        WHERE id = @Id
+        AND deleted_at_utc IS NULL;
         """;
 }

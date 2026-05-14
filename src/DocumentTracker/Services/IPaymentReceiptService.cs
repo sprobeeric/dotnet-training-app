@@ -9,4 +9,6 @@ public interface IPaymentReceiptService
     Task<PaymentReceiptDetailsViewModel?> GetDetailsAsync(int id);
     Task<PaymentReceiptDeleteViewModel?> GetDeleteAsync(int id);
     Task<ServiceResult> SoftDeleteAsync(int id, string? currentRole);
+    Task<ServiceResult<PaymentReceiptEditViewModel>> GetEditAsync(int id);
+    Task<ServiceResult> UpdateAsync(PaymentReceiptEditViewModel viewModel);
 }

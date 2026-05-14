@@ -136,7 +136,63 @@ public class PaymentReceiptRepository : IPaymentReceiptRepository
         return id;
     }
 
-   public async Task<bool> SoftDeleteAsync(int id, DateTime deletedAtUtc)
+    public async Task<bool> UpdateAsync(PaymentReceipt paymentReceipt)
+    {
+        await using var connection = await _dataSource.OpenConnectionAsync();
+        await using var transaction = await connection.BeginTransactionAsync();
+
+        var previousInvoiceId = await connection.ExecuteScalarAsync<int?>(
+            PaymentReceiptSql.GetInvoiceIdForReceipt,
+            new { paymentReceipt.Id },
+            transaction);
+
+        if (previousInvoiceId is null)
+        {
+            await transaction.RollbackAsync();
+            _logger.LogInformation("Update skipped for payment receipt with id {PaymentReceiptId}. No active row found.", paymentReceipt.Id);
+            return false;
+        }
+
+        var rows = await connection.ExecuteAsync(
+            PaymentReceiptSql.UpdatePaymentReceipt,
+            ToParameters(paymentReceipt),
+            transaction);
+
+        if (rows != 1)
+        {
+            await transaction.RollbackAsync();
+            _logger.LogInformation("Update skipped for payment receipt with id {PaymentReceiptId}. Rows affected: {RowsAffected}.", paymentReceipt.Id, rows);
+            return false;
+        }
+
+        await connection.ExecuteAsync(
+            PaymentReceiptSql.RecalculateInvoiceStatus,
+            new
+            {
+                InvoiceId = previousInvoiceId.Value,
+                paymentReceipt.UpdatedAtUtc
+            },
+            transaction);
+
+        if (previousInvoiceId.Value != paymentReceipt.InvoiceId)
+        {
+            await connection.ExecuteAsync(
+                PaymentReceiptSql.RecalculateInvoiceStatus,
+                new
+                {
+                    paymentReceipt.InvoiceId,
+                    paymentReceipt.UpdatedAtUtc
+                },
+                transaction);
+        }
+
+        await transaction.CommitAsync();
+
+        _logger.LogInformation("Updated payment receipt with id {PaymentReceiptId}.", paymentReceipt.Id);
+        return true;
+    }
+
+    public async Task<bool> SoftDeleteAsync(int id, DateTime deletedAtUtc)
     {
         await using var connection = await _dataSource.OpenConnectionAsync();
         await using var transaction = await connection.BeginTransactionAsync();
@@ -161,7 +217,7 @@ public class PaymentReceiptRepository : IPaymentReceiptRepository
             }
 
             await connection.ExecuteAsync(
-                PaymentReceiptSql.RecalculateInvoiceStatusAfterReceiptDelete,
+                PaymentReceiptSql.RecalculateInvoiceStatus,
                 new
                 {
                     InvoiceId = invoiceId.Value,
@@ -180,4 +236,17 @@ public class PaymentReceiptRepository : IPaymentReceiptRepository
             throw;
         }
     }
+
+    private static object ToParameters(PaymentReceipt paymentReceipt) => new
+    {
+        paymentReceipt.Id,
+        paymentReceipt.ReceiptNumber,
+        paymentReceipt.InvoiceId,
+        PaymentDate = paymentReceipt.PaymentDate.ToDateTime(TimeOnly.MinValue),
+        paymentReceipt.AmountPaid,
+        paymentReceipt.PaymentMethod,
+        paymentReceipt.ReferenceNumber,
+        paymentReceipt.Notes,
+        paymentReceipt.UpdatedAtUtc
+    };
 }
