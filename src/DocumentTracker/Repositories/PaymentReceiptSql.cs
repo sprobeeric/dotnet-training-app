@@ -7,6 +7,7 @@ public static class PaymentReceiptSql
         pr.receipt_number AS ReceiptNumber,
         pr.invoice_id AS InvoiceId,
         i.invoice_number AS InvoiceNumber,
+        i.customer_name AS CustomerName,
         pr.payment_date AS PaymentDate,
         pr.amount_paid AS AmountPaid,
         pr.payment_method AS PaymentMethod,
@@ -16,26 +17,55 @@ public static class PaymentReceiptSql
         pr.updated_at_utc AS UpdatedAtUtc,
         pr.deleted_at_utc AS DeletedAtUtc
         """;
-    
-    public const string GetNextReceiptSequence = """
-        SELECT COALESCE(MAX(CAST(RIGHT(receipt_number, 6) AS integer)), 0) + 1
-        FROM payment_receipts
-        WHERE receipt_number LIKE @ReceiptPrefix || '-%';
-        """;
 
     public const string InsertPaymentReceipt = """
         INSERT INTO payment_receipts
-            (receipt_number, payment_date_utc, reference_number, total_amount, received, change_amount, created_at_utc, updated_at_utc)
+            (receipt_number, invoice_id, payment_date, amount_paid, payment_method, reference_number, notes, created_at_utc, updated_at_utc)
         VALUES
-            (@ReceiptNumber, @PaymentDateUtc, @ReferenceNumber, @TotalAmount, @Received, @ChangeAmount, @CreatedAtUtc, @UpdatedAtUtc)
+            (@ReceiptNumber, @InvoiceId, @PaymentDate, @AmountPaid, @PaymentMethod, @ReferenceNumber, @Notes, @CreatedAtUtc, @UpdatedAtUtc)
         RETURNING id;
         """;
 
-    public const string InsertPaymentReceiptProduct = """
-        INSERT INTO payment_receipt_products
-            (payment_receipt_id, product_id, quantity, unit_price, line_total)
-        VALUES
-            (@PaymentReceiptId, @ProductId, @Quantity, @UnitPrice, @LineTotal);
+    public const string ReceiptNumberExists = """
+        SELECT EXISTS (
+            SELECT 1
+            FROM payment_receipts
+            WHERE receipt_number = @ReceiptNumber
+            AND (@ExcludeId IS NULL OR id <> @ExcludeId)
+        );
+        """;
+
+    public const string ReferenceNumberExists = """
+        SELECT EXISTS (
+            SELECT 1
+            FROM payment_receipts
+            WHERE reference_number = @ReferenceNumber
+            AND (@ExcludeId IS NULL OR id <> @ExcludeId)
+        );
+        """;
+
+    public const string InvoiceExistsAndPending = """
+        SELECT EXISTS (
+            SELECT 1
+            FROM invoices
+            WHERE id = @InvoiceId
+            AND deleted_at_utc IS NULL
+            AND status = 'Pending'
+        );
+        """;
+
+    public const string UpdateInvoiceStatusToPaid = """
+        UPDATE invoices i
+        SET status = 'Paid',
+            updated_at_utc = @UpdatedAtUtc
+        WHERE i.id = @InvoiceId
+        AND @AmountPaid >= i.total_amount - (
+            SELECT COALESCE(SUM(pr.amount_paid), 0)
+            FROM payment_receipts pr
+            WHERE pr.invoice_id = i.id
+            AND pr.deleted_at_utc IS NULL
+            AND pr.id <> @PaymentReceiptId
+        );
         """;
 
     public static string SearchPaymentReceipts(string sortBy, string orderBy) => $"""
@@ -45,10 +75,12 @@ public static class PaymentReceiptSql
             ON i.id = pr.invoice_id
         WHERE pr.deleted_at_utc IS NULL
         AND (
-            @SearchTerm IS NULL
-            OR pr.receipt_number ILIKE @SearchPattern
-            OR pr.reference_number ILIKE @SearchPattern
-            OR i.invoice_number ILIKE @SearchPattern
+            @SearchPattern::text IS NULL
+            OR pr.receipt_number ILIKE @SearchPattern::text
+            OR pr.reference_number ILIKE @SearchPattern::text
+            OR i.invoice_number ILIKE @SearchPattern::text
+            OR i.customer_name ILIKE @SearchPattern::text
+            OR pr.payment_method ILIKE @SearchPattern::text
         )
         AND (
             @DateFrom::date IS NULL
@@ -70,10 +102,12 @@ public static class PaymentReceiptSql
             ON i.id = pr.invoice_id
         WHERE pr.deleted_at_utc IS NULL
         AND (
-            @SearchTerm IS NULL
-            OR pr.receipt_number ILIKE @SearchPattern
-            OR pr.reference_number ILIKE @SearchPattern
-            OR i.invoice_number ILIKE @SearchPattern
+            @SearchPattern::text IS NULL
+            OR pr.receipt_number ILIKE @SearchPattern::text
+            OR pr.reference_number ILIKE @SearchPattern::text
+            OR i.invoice_number ILIKE @SearchPattern::text
+            OR i.customer_name ILIKE @SearchPattern::text
+            OR pr.payment_method ILIKE @SearchPattern::text
         )
         AND (
             @DateFrom::date IS NULL
@@ -91,25 +125,6 @@ public static class PaymentReceiptSql
         INNER JOIN invoices i
             ON i.id = pr.invoice_id
         WHERE pr.id = @Id;
-        """;
-
-    public const string GetProductsByReceiptId = """
-        SELECT
-            prp.payment_receipt_id AS PaymentReceiptId,
-            prp.product_id AS ProductId,
-            prp.quantity AS Quantity,
-            prp.unit_price AS UnitPrice,
-            prp.line_total AS LineTotal,
-            p.id AS Id,
-            p.name AS Name,
-            p.unit_price AS UnitPrice,
-            p.created_at_utc AS CreatedAtUtc,
-            p.updated_at_utc AS UpdatedAtUtc,
-            p.deleted_at_utc AS DeletedAtUtc
-        FROM payment_receipt_products prp
-        INNER JOIN products p ON p.id = prp.product_id
-        WHERE prp.payment_receipt_id = @PaymentReceiptId
-        ORDER BY p.name ASC;
         """;
 
     public const string SoftDeletePaymentReceipt = """

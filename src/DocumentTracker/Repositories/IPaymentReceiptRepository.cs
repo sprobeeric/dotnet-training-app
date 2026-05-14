@@ -6,7 +6,9 @@ public interface IPaymentReceiptRepository
 {
     Task<PaginatedResult<PaymentReceipt>> SearchAsync(PaymentReceiptSearchCriteria criteria);
     Task<PaymentReceipt?> GetByIdAsync(int id);
-    Task<int> GetNextReceiptSequenceAsync(DateOnly paymentDate);
-    Task<int> CreateAsync(PaymentReceipt paymentReceipt, IReadOnlyList<PaymentReceiptProduct> products);
+    Task<bool> ReceiptNumberExistsAsync(string receiptNumber, int? excludeId = null);
+    Task<bool> ReferenceNumberExistsAsync(string referenceNumber, int? excludeId = null);
+    Task<bool> InvoiceExistsAndPendingAsync(int invoiceId);
+    Task<int> CreateAsync(PaymentReceipt paymentReceipt);
     Task<bool> SoftDeleteAsync(int id, DateTime deletedAtUtc);
 }
