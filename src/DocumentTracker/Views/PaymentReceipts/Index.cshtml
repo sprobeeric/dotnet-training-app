@@ -180,6 +180,7 @@ else
                     <td>@receipt.Notes</td>
                     <td class="text-end text-nowrap">
                         <a asp-action="Details" asp-route-id="@receipt.Id" class="btn btn-sm btn-outline-secondary">Details</a>
+                        <a asp-action="Edit" asp-route-id="@receipt.Id" class="btn btn-sm btn-outline-primary">Edit</a>
                         <a asp-action="Delete" asp-route-id="@receipt.Id" class="btn btn-sm btn-outline-danger">Delete</a>
                     </td>
                 </tr>

@@ -11,7 +11,10 @@
         <h1 class="h3 mb-1">Payment Receipt Details</h1>
         <div class="text-muted">Receipt @Model.ReceiptNumber</div>
     </div>
-    <a asp-action="Index" class="btn btn-outline-secondary">Back to Payment Receipts</a>
+    <div class="d-flex gap-2">
+        <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-primary">Edit</a>
+        <a asp-action="Index" class="btn btn-outline-secondary">Back to Payment Receipts</a>
+    </div>
 </div>
 
 <div class="row g-4">
