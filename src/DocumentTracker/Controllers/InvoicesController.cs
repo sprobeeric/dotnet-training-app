@@ -6,13 +6,13 @@ namespace DocumentTracker.Controllers;
 
 public class InvoicesController : Controller
 {
-    private const int PageSize = 5;
-    private const string DefaultSortBy = "updated";
-    private const string DefaultSortDirection = "desc";
-
     private readonly IInvoiceService _invoiceService;
     private readonly ICurrentUserRoleProvider _roleProvider;
     private readonly ILogger<InvoicesController> _logger;
+
+    private const int PageSize = 5;
+    private const string DefaultSortBy = "updated";
+    private const string DefaultSortDirection = "desc";
 
     public InvoicesController(
         IInvoiceService invoiceService,
@@ -95,5 +95,29 @@ public class InvoicesController : Controller
         {
             ModelState.AddModelError(error.Key, error.Message);
         }
+    }
+
+    public async Task<IActionResult> Delete(int id)
+    {
+        var invoice = await _invoiceService.GetDeleteAsync(id);
+        return invoice is null ? NotFound() : View(invoice);
+    }
+
+    [HttpPost]
+    [ActionName("Delete")]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> DeleteConfirmed(int id)
+    {
+        var result = await _invoiceService.SoftDeleteAsync(id, _roleProvider.GetCurrentRole());
+        if (!result.Succeeded)
+        {
+            _logger.LogWarning("Soft delete was rejected for invoice id {InvoiceId}.", id);
+            AddServiceErrors(result);
+
+            var invoice = await _invoiceService.GetDeleteAsync(id);
+            return invoice is null ? View("ErrorMessage") : View(invoice);
+        }
+
+        return RedirectToAction(nameof(Index));
     }
 }

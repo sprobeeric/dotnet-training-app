@@ -14,4 +14,7 @@ public interface IInvoiceRepository
         int pageSize);
     Task<bool> InvoiceNumberExistsAsync(string invoiceNumber, int? excludeId = null);
     Task<int> CreateAsync(Invoice invoice);
+
+    Task<Invoice?> GetByIdAsync(int id);
+    Task<bool> SoftDeleteAsync(int id, DateTime deletedAtUtc);
 }

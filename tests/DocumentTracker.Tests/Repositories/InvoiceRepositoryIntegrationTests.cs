@@ -170,6 +170,63 @@ public class InvoiceRepositoryIntegrationTests
         Assert.Equal(new[] { 112m, 336m }, result.Items.Select(invoice => invoice.TotalAmount).ToArray());
     }
 
+    [Fact]
+    public async Task SoftDeleteAsync_WithPostgreSqlConnection_SetsDeletedAtAndReturnsFalseOnSecondCall()
+    {
+        DapperDateOnlyTypeHandler.Register();
+
+        var connectionString = Environment.GetEnvironmentVariable("DOCUMENTTRACKER_TEST_CONNECTION_STRING");
+        if (string.IsNullOrWhiteSpace(connectionString))
+        {
+            return;
+        }
+
+        await using var dataSource = NpgsqlDataSource.Create(connectionString);
+        await using var connection = await dataSource.OpenConnectionAsync();
+
+        var root = FindRepositoryRoot();
+        var schemaSql = await File.ReadAllTextAsync(Path.Combine(root, "database", "schema.sql"));
+
+        await connection.ExecuteAsync(schemaSql);
+        await connection.ExecuteAsync("DELETE FROM invoices;");
+
+        var now = DateTime.UtcNow;
+        var id = await connection.ExecuteScalarAsync<int>(
+            """
+            INSERT INTO invoices
+                (invoice_number, customer_name, invoice_date, due_date, status, subtotal, tax_amount, total_amount, notes, created_at_utc, updated_at_utc)
+            VALUES
+                (@InvoiceNumber, @CustomerName, @InvoiceDate, @DueDate, @Status, @Subtotal, @TaxAmount, @TotalAmount, @Notes, @CreatedAtUtc, @UpdatedAtUtc)
+            RETURNING id;
+            """,
+            new
+            {
+                InvoiceNumber = $"INV-{Guid.NewGuid():N}"[..12],
+                CustomerName = "Delete Test Customer",
+                InvoiceDate = new DateOnly(2026, 5, 1),
+                DueDate = new DateOnly(2026, 5, 15),
+                Status = InvoiceStatus.Sent.ToString(),
+                Subtotal = 100m,
+                TaxAmount = 10m,
+                TotalAmount = 110m,
+                Notes = "Created by the soft delete integration test.",
+                CreatedAtUtc = now,
+                UpdatedAtUtc = now
+            });
+
+        var repository = new InvoiceRepository(dataSource, new Mock<ILogger<InvoiceRepository>>().Object);
+
+        var firstResult = await repository.SoftDeleteAsync(id, now);
+        var invoice = await connection.QuerySingleAsync<Invoice>(
+            "SELECT deleted_at_utc AS DeletedAtUtc FROM invoices WHERE id = @Id;",
+            new { Id = id });
+        var secondResult = await repository.SoftDeleteAsync(id, now);
+
+        Assert.True(firstResult);
+        Assert.NotNull(invoice.DeletedAtUtc);
+        Assert.False(secondResult);
+    }
+
     private static string FindRepositoryRoot()
     {
         var directory = new DirectoryInfo(AppContext.BaseDirectory);

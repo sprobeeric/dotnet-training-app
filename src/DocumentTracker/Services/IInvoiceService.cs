@@ -14,4 +14,7 @@ public interface IInvoiceService
         int pageNumber,
         int pageSize);
     Task<ServiceResult<int>> CreateAsync(InvoiceCreateViewModel viewModel);
+
+    Task<InvoiceDeleteViewModel?> GetDeleteAsync(int id);
+    Task<ServiceResult> SoftDeleteAsync(int id, string? currentRole);
 }

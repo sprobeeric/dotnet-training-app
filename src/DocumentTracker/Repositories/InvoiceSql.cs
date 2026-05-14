@@ -59,4 +59,19 @@ public static class InvoiceSql
         ORDER BY {orderByClause}
         LIMIT @PageSize OFFSET @Offset;
         """;
+
+        public const string GetById = $"""
+        SELECT {SelectColumns}
+        FROM invoices
+        WHERE id = @Id;
+        """;
+
+    public const string SoftDeleteInvoice = """
+        UPDATE invoices
+        SET deleted_at_utc = @DeletedAtUtc,
+            updated_at_utc = @DeletedAtUtc
+        WHERE id = @Id
+          AND deleted_at_utc IS NULL;
+        """;
 }
+
