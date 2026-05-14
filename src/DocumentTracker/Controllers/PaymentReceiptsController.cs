@@ -8,33 +8,39 @@ public class PaymentReceiptsController : Controller
 {
     private readonly IPaymentReceiptService _paymentReceiptService;
     private readonly IPaymentReceiptCreatePageService _createPageService;
+    private readonly ICurrentUserRoleProvider _roleProvider;
+    private readonly ILogger<PaymentReceiptsController> _logger;
 
     public PaymentReceiptsController(
         IPaymentReceiptService paymentReceiptService,
-        IPaymentReceiptCreatePageService createPageService)
+        IPaymentReceiptCreatePageService createPageService,
+        ICurrentUserRoleProvider roleProvider,
+        ILogger<PaymentReceiptsController> logger)
     {
         _paymentReceiptService = paymentReceiptService;
         _createPageService = createPageService;
+         _roleProvider = roleProvider;
+        _logger = logger;
     }
 
-    public async Task<IActionResult> Index(string? searchTerm, DateOnly? dateFrom, DateOnly? dateTo, string sort = "payment_date", string order = "desc", int page = 1, int pageSize = 10)
+    public async Task<IActionResult> Index(PaymentReceiptSearchViewModel model)
     {
-        var normalizedPage = page < 1 ? 1 : page;
-        var normalizedPageSize = pageSize < 1 ? 10 : pageSize;
+        var normalizedPage = model.Page < 1 ? 1 : model.Page;
+        var normalizedPageSize = model.PageSize < 1 ? 10 : model.PageSize;
 
-        var paymentReceipts = await _paymentReceiptService.SearchAsync(searchTerm, dateFrom, dateTo, sort, order, normalizedPage, normalizedPageSize);
+        var receipts = await _paymentReceiptService.SearchAsync(model);
 
         return View(new PaymentReceiptSearchViewModel
         {
-            SearchTerm = searchTerm,
-            DateFrom = dateFrom,
-            DateTo = dateTo,
-            Sort = sort,
-            Order = order,
+            SearchTerm = model.SearchTerm,
+            DateFrom = model.DateFrom,
+            DateTo = model.DateTo,
+            Sort = model.Sort,
+            Order = model.Order,
             Page = normalizedPage,
             PageSize = normalizedPageSize,
-            Total = paymentReceipts.Total,
-            PaymentReceipts = paymentReceipts.Items
+            Total = receipts.Total,
+            Receipts = receipts.Items
         });
     }
     
@@ -69,6 +75,30 @@ public class PaymentReceiptsController : Controller
     {
         var receipt = await _paymentReceiptService.GetDetailsAsync(id);
         return receipt is null ? NotFound() : View(receipt);
+    }
+
+    public async Task<IActionResult> Delete(int id)
+    {
+        var document = await _paymentReceiptService.GetDeleteAsync(id);
+        return document is null ? NotFound() : View(document);
+    }
+
+    [HttpPost]
+    [ActionName("Delete")]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> DeleteConfirmed(int id)
+    {
+        var result = await _paymentReceiptService.SoftDeleteAsync(id, _roleProvider.GetCurrentRole());
+        if (!result.Succeeded)
+        {
+            _logger.LogWarning("Soft delete was rejected for payment receipt id {PaymentReceiptId}.", id);
+            AddServiceErrors(result);
+
+            var document = await _paymentReceiptService.GetDeleteAsync(id);
+            return document is null ? View("ErrorMessage") : View(document);
+        }
+
+        return RedirectToAction(nameof(Index));
     }
 
     private void AddServiceErrors(ServiceResult result)

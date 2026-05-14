@@ -14,6 +14,87 @@ public class PaymentReceiptServiceTests
     private readonly Mock<ILogger<PaymentReceiptService>> _logger = new();
 
     [Fact]
+    public async Task SearchAsync_WithSearchAndDateFilter_ReturnsMappedPaymentReceipts()
+    {
+        var service = CreateService();
+        var search = new PaymentReceiptSearchViewModel
+        {
+            SearchTerm = "Northwind",
+            DateFrom = new DateOnly(2026, 5, 6),
+            DateTo = new DateOnly(2026, 5, 8),
+            Sort = "receipt_number",
+            Order = "asc",
+            Page = 1,
+            PageSize = 10
+        };
+
+        _paymentReceiptRepository
+            .Setup(repository => repository.SearchAsync(It.Is<PaymentReceiptSearchCriteria>(criteria =>
+                criteria.SearchTerm == "Northwind" &&
+                criteria.DateFrom == new DateOnly(2026, 5, 6) &&
+                criteria.DateTo == new DateOnly(2026, 5, 8) &&
+                criteria.Sort == "receipt_number" &&
+                criteria.Order == "asc" &&
+                criteria.Page == 1 &&
+                criteria.PageSize == 10)))
+            .ReturnsAsync(new PaginatedResult<PaymentReceipt>
+            {
+                Total = 2,
+                Items =
+                [
+                    new PaymentReceipt
+                    {
+                        Id = 6,
+                        ReceiptNumber = "PR-1006",
+                        InvoiceNumber = "INV-1001",
+                        CustomerName = "Northwind Traders",
+                        PaymentDate = new DateOnly(2026, 5, 6),
+                        AmountPaid = 125m,
+                        PaymentMethod = "Cash",
+                        ReferenceNumber = "REF-1006",
+                        Notes = "Late fee payment."
+                    },
+                    new PaymentReceipt
+                    {
+                        Id = 8,
+                        ReceiptNumber = "PR-1008",
+                        InvoiceNumber = "INV-1001",
+                        CustomerName = "Northwind Traders",
+                        PaymentDate = new DateOnly(2026, 5, 8),
+                        AmountPaid = 200m,
+                        PaymentMethod = "Credit Card",
+                        ReferenceNumber = "REF-1008",
+                        Notes = "Consulting add-on."
+                    }
+                ]
+            });
+
+        var result = await service.SearchAsync(search);
+
+        Assert.Equal(2, result.Total);
+        Assert.Collection(
+            result.Items,
+            paymentReceipt =>
+            {
+                Assert.Equal("PR-1006", paymentReceipt.ReceiptNumber);
+                Assert.Equal("INV-1001", paymentReceipt.InvoiceNumber);
+                Assert.Equal("Northwind Traders", paymentReceipt.CustomerName);
+                Assert.Equal(new DateOnly(2026, 5, 6), paymentReceipt.PaymentDate);
+                Assert.Equal(125m, paymentReceipt.AmountPaid);
+                Assert.Equal("Cash", paymentReceipt.PaymentMethod);
+            },
+            paymentReceipt =>
+            {
+                Assert.Equal("PR-1008", paymentReceipt.ReceiptNumber);
+                Assert.Equal("INV-1001", paymentReceipt.InvoiceNumber);
+                Assert.Equal("Northwind Traders", paymentReceipt.CustomerName);
+                Assert.Equal(new DateOnly(2026, 5, 8), paymentReceipt.PaymentDate);
+                Assert.Equal(200m, paymentReceipt.AmountPaid);
+                Assert.Equal("Credit Card", paymentReceipt.PaymentMethod);
+            });
+    }
+
+    [Fact]
     public async Task GetDetailsAsync_WhenReceiptExists_ReturnsInvoiceAndPaymentContext()
     {
         var service = CreateService();
@@ -274,6 +355,37 @@ public class PaymentReceiptServiceTests
         _paymentReceiptRepository.Verify(repository => repository.CreateAsync(It.Is<PaymentReceipt>(paymentReceipt =>
             paymentReceipt.ReferenceNumber == null &&
             paymentReceipt.PaymentMethod == "Cash")), Times.Once);
+    }
+
+    [Fact]
+    public async Task SoftDeleteAsync_WithoutReceiptAdminRole_ReturnsRoleError()
+    {
+        var service = CreateService();
+
+        var result = await service.SoftDeleteAsync(1, DocumentRoles.DocumentAdmin);
+
+        Assert.False(result.Succeeded);
+        Assert.Contains(result.Errors, error => error.Message.Contains("ReceiptAdmin", StringComparison.Ordinal));
+        _paymentReceiptRepository.Verify(repository => repository.SoftDeleteAsync(It.IsAny<int>(), It.IsAny<DateTime>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task SoftDeleteAsync_WithReceiptAdminRole_DeletesReceipt()
+    {
+        var service = CreateService();
+
+        _paymentReceiptRepository
+            .Setup(repository => repository.GetByIdAsync(1))
+            .ReturnsAsync(new PaymentReceipt { Id = 1 });
+
+        _paymentReceiptRepository
+            .Setup(repository => repository.SoftDeleteAsync(1, It.IsAny<DateTime>()))
+            .ReturnsAsync(true);
+
+        var result = await service.SoftDeleteAsync(1, PaymentReceiptRoles.ReceiptAdmin);
+
+        Assert.True(result.Succeeded);
+        _paymentReceiptRepository.Verify(repository => repository.SoftDeleteAsync(1, It.IsAny<DateTime>()), Times.Once);
     }
 
     private PaymentReceiptService CreateService() => new(

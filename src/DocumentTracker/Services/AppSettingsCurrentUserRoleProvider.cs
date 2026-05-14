@@ -20,6 +20,11 @@ public class AppSettingsCurrentUserRoleProvider : ICurrentUserRoleProvider
             return DocumentRoles.DocumentAdmin;
         }
 
+        if (user?.IsInRole(PaymentReceiptRoles.ReceiptAdmin) == true)
+        {
+            return PaymentReceiptRoles.ReceiptAdmin;
+        }
+
         return _configuration["Training:CurrentUserRole"];
     }
 }

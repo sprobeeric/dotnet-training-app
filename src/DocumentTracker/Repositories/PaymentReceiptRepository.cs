@@ -15,21 +15,20 @@ public class PaymentReceiptRepository : IPaymentReceiptRepository
         _logger = logger;
     }
 
-    public async Task<PaginatedResult<PaymentReceipt>> SearchAsync(string? searchTerm, DateOnly? dateFrom, DateOnly? dateTo, string sort, string order, int page, int pageSize)
+    public async Task<PaginatedResult<PaymentReceipt>> SearchAsync(PaymentReceiptSearchCriteria criteria)
     {
-        var normalizedSearch = string.IsNullOrWhiteSpace(searchTerm) ? null : searchTerm.Trim();
-        var normalizedPage = page < 1 ? 1 : page;
-        var normalizedPageSize = pageSize < 1 ? 10 : pageSize;
-        var normalizedDateFrom = dateFrom?.ToDateTime(TimeOnly.MinValue);
-        var normalizedDateTo = dateTo?.ToDateTime(TimeOnly.MinValue);
+        var normalizedSearch = string.IsNullOrWhiteSpace(criteria.SearchTerm) ? null : criteria.SearchTerm.Trim();
+        var normalizedPage = criteria.Page < 1 ? 1 : criteria.Page;
+        var normalizedPageSize = criteria.PageSize < 1 ? 10 : criteria.PageSize;
+        var normalizedDateFrom = criteria.DateFrom?.ToDateTime(TimeOnly.MinValue);
+        var normalizedDateTo = criteria.DateTo?.ToDateTime(TimeOnly.MinValue);
         var offset = (normalizedPage - 1) * normalizedPageSize;
-        var dateFromValue = dateFrom?.ToDateTime(TimeOnly.MinValue);
-        var dateToValue = dateTo?.ToDateTime(TimeOnly.MinValue);
 
         var allowedSorts = new Dictionary<string, string>
         {
             ["receipt_number"] = "pr.receipt_number",
             ["invoice_number"] = "i.invoice_number",
+            ["customer_name"] = "i.customer_name",
             ["payment_date"] = "pr.payment_date",
             ["amount_paid"] = "pr.amount_paid",
             ["payment_method"] = "pr.payment_method",
@@ -37,11 +36,10 @@ public class PaymentReceiptRepository : IPaymentReceiptRepository
             ["notes"] = "pr.notes"
         };
 
-        var sortBy = allowedSorts.GetValueOrDefault(sort ?? string.Empty, "payment_date");
-        var orderBy = string.Equals(order, "asc", StringComparison.OrdinalIgnoreCase) ? "ASC" : "DESC";
-
-        await using var connection = await _dataSource.OpenConnectionAsync();
+        var sortBy = allowedSorts.GetValueOrDefault(criteria.Sort ?? string.Empty, "pr.payment_date");
+        var orderBy = string.Equals(criteria.Order, "asc", StringComparison.OrdinalIgnoreCase) ? "ASC" : "DESC";
         var parameters = new DynamicParameters();
+
         parameters.Add("SearchTerm", normalizedSearch);
         parameters.Add("SearchPattern", normalizedSearch is null ? null : $"%{normalizedSearch}%");
         parameters.Add("DateFrom", normalizedDateFrom);
@@ -49,32 +47,20 @@ public class PaymentReceiptRepository : IPaymentReceiptRepository
         parameters.Add("PageSize", normalizedPageSize);
         parameters.Add("Offset", offset);
 
+        await using var connection = await _dataSource.OpenConnectionAsync();
+
         var sql = PaymentReceiptSql.SearchPaymentReceipts(sortBy, orderBy);
-        var paymentReceipts = await connection.QueryAsync<PaymentReceipt>(
+        var receipts = await connection.QueryAsync<PaymentReceipt>(
             sql,
-            new
-            {
-                SearchTerm = normalizedSearch,
-                SearchPattern = normalizedSearch is null ? null : $"%{normalizedSearch}%",
-                DateFrom = dateFromValue,
-                DateTo = dateToValue,
-                PageSize = normalizedPageSize,
-                Offset = offset
-            });
+            parameters);
 
         var total = await connection.ExecuteScalarAsync<int>(
             PaymentReceiptSql.CountPaymentReceipts,
-            new
-            {
-                SearchTerm = normalizedSearch,
-                SearchPattern = normalizedSearch is null ? null : $"%{normalizedSearch}%",
-                DateFrom = dateFromValue,
-                DateTo = dateToValue
-            });
+            parameters);
 
         return new PaginatedResult<PaymentReceipt>
         {
-            Items = paymentReceipts.AsList(),
+            Items = receipts.AsList(),
             Total = total
         };
     }
@@ -140,7 +126,7 @@ public class PaymentReceiptRepository : IPaymentReceiptRepository
                 PaymentReceiptId = id,
                 paymentReceipt.InvoiceId,
                 paymentReceipt.AmountPaid,
-                UpdatedAtUtc = paymentReceipt.UpdatedAtUtc
+                paymentReceipt.UpdatedAtUtc
             },
             transaction);
 
@@ -148,5 +134,50 @@ public class PaymentReceiptRepository : IPaymentReceiptRepository
 
         _logger.LogInformation("Created payment receipt with id {PaymentReceiptId}.", id);
         return id;
+    }
+
+   public async Task<bool> SoftDeleteAsync(int id, DateTime deletedAtUtc)
+    {
+        await using var connection = await _dataSource.OpenConnectionAsync();
+        await using var transaction = await connection.BeginTransactionAsync();
+
+        try
+        {
+            var invoiceId = await connection.ExecuteScalarAsync<int?>(
+                PaymentReceiptSql.SoftDeletePaymentReceipt,
+                new
+                {
+                    Id = id,
+                    DeletedAtUtc = deletedAtUtc
+                },
+                transaction);
+
+            if (invoiceId is null)
+            {
+                await transaction.RollbackAsync();
+
+                _logger.LogInformation("Soft delete skipped for payment receipt with id {PaymentReceiptId}. No rows affected.", id);
+                return false;
+            }
+
+            await connection.ExecuteAsync(
+                PaymentReceiptSql.RecalculateInvoiceStatusAfterReceiptDelete,
+                new
+                {
+                    InvoiceId = invoiceId.Value,
+                    UpdatedAtUtc = deletedAtUtc
+                },
+                transaction);
+
+            await transaction.CommitAsync();
+
+            _logger.LogInformation("Soft deleted payment receipt with id {PaymentReceiptId}.", id);
+            return true;
+        }
+        catch
+        {
+            await transaction.RollbackAsync();
+            throw;
+        }
     }
 }
