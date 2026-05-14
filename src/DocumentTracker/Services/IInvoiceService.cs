@@ -13,4 +13,5 @@ public interface IInvoiceService
         string? sortDirection,
         int pageNumber,
         int pageSize);
+    Task<ServiceResult<int>> CreateAsync(InvoiceCreateViewModel viewModel);
 }

@@ -18,6 +18,23 @@ public static class InvoiceSql
         deleted_at_utc AS DeletedAtUtc
         """;
 
+    public const string InvoiceNumberExists = """
+        SELECT EXISTS (
+            SELECT 1
+            FROM invoices
+            WHERE lower(invoice_number) = lower(@InvoiceNumber)
+                AND (@ExcludeId IS NULL or id <> @ExcludeId)
+            )
+        """;
+
+    public const string InsertInvoice = """
+        INSERT INTO invoices
+            (invoice_number, customer_name, invoice_date, due_date, status, subtotal, tax_amount, total_amount, notes, created_at_utc, updated_at_utc)
+        VALUES
+            (@InvoiceNumber, @CustomerName, @InvoiceDate, @DueDate, @Status, @Subtotal, @TaxAmount, @TotalAmount, @Notes, @CreatedAtUtc, @UpdatedAtUtc)
+        RETURNING id;
+        """;
+
     private const string SearchFilters = """
         FROM invoices
         WHERE deleted_at_utc IS NULL
