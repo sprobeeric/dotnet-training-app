@@ -103,6 +103,48 @@ public class InvoicesControllerTests
     }
 
     [Fact]
+    public async Task Edit_Get_WhenServiceSucceeds_ReturnsEditView()
+    {
+        var viewModel = new InvoiceEditViewModel
+        {
+            Id = 5,
+            InvoiceNumber = "INV-005",
+            CustomerName = "ACME",
+            InvoiceDate = new DateOnly(2026, 5, 1),
+            DueDate = new DateOnly(2026, 5, 15),
+            Status = InvoiceStatus.Sent,
+            Subtotal = 100m,
+            TaxAmount = 12m
+        };
+        var service = new Mock<IInvoiceService>();
+        service.Setup(invoiceService => invoiceService.GetEditAsync(5))
+            .ReturnsAsync(ServiceResult<InvoiceEditViewModel>.Success(viewModel));
+
+        var controller = CreateController(service.Object);
+
+        var result = await controller.Edit(5);
+
+        var viewResult = Assert.IsType<ViewResult>(result);
+        Assert.Same(viewModel, viewResult.Model);
+    }
+
+    [Fact]
+    public async Task Edit_Get_WhenServiceFails_ReturnsErrorMessageView()
+    {
+        var service = new Mock<IInvoiceService>();
+        service.Setup(invoiceService => invoiceService.GetEditAsync(5))
+            .ReturnsAsync(ServiceResult<InvoiceEditViewModel>.Failure(string.Empty, "The document was not found."));
+
+        var controller = CreateController(service.Object);
+
+        var result = await controller.Edit(5);
+
+        var viewResult = Assert.IsType<ViewResult>(result);
+        Assert.Equal("ErrorMessage", viewResult.ViewName);
+        Assert.False(controller.ModelState.IsValid);
+    }
+
+    [Fact]
     public async Task Create_Post_WithInvalidModelState_ReturnsCreateView()
     {
         var service = new Mock<IInvoiceService>();
@@ -122,6 +164,85 @@ public class InvoicesControllerTests
         service.Verify(
             invoiceService => invoiceService.CreateAsync(It.IsAny<InvoiceCreateViewModel>()),
             Times.Never);
+    }
+
+    [Fact]
+    public async Task Edit_Post_WhenRouteIdDoesNotMatchModelId_ReturnsBadRequest()
+    {
+        var service = new Mock<IInvoiceService>();
+        var controller = CreateController(service.Object);
+        var viewModel = new InvoiceEditViewModel { Id = 5 };
+
+        var result = await controller.Edit(6, viewModel);
+
+        Assert.IsType<BadRequestResult>(result);
+        service.Verify(invoiceService => invoiceService.UpdateAsync(It.IsAny<InvoiceEditViewModel>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task Edit_Post_WithInvalidModelState_ReturnsEditView()
+    {
+        var service = new Mock<IInvoiceService>();
+        var controller = CreateController(service.Object);
+        var viewModel = new InvoiceEditViewModel { Id = 5 };
+        controller.ModelState.AddModelError(nameof(InvoiceEditViewModel.InvoiceNumber), "The Invoice Number field is required.");
+
+        var result = await controller.Edit(5, viewModel);
+
+        var viewResult = Assert.IsType<ViewResult>(result);
+        Assert.Same(viewModel, viewResult.Model);
+        service.Verify(invoiceService => invoiceService.UpdateAsync(It.IsAny<InvoiceEditViewModel>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task Edit_Post_WhenServiceFails_ReturnsEditView()
+    {
+        var service = new Mock<IInvoiceService>();
+        var controller = CreateController(service.Object);
+        var viewModel = new InvoiceEditViewModel
+        {
+            Id = 5,
+            InvoiceNumber = "INV-005",
+            CustomerName = "ACME",
+            InvoiceDate = new DateOnly(2026, 5, 1),
+            DueDate = new DateOnly(2026, 5, 15),
+            Status = InvoiceStatus.Sent,
+            Subtotal = 100m,
+            TaxAmount = 12m
+        };
+        service.Setup(invoiceService => invoiceService.UpdateAsync(viewModel))
+            .ReturnsAsync(ServiceResult.Failure(nameof(InvoiceEditViewModel.InvoiceNumber), "An invoice with this number already exists."));
+
+        var result = await controller.Edit(5, viewModel);
+
+        var viewResult = Assert.IsType<ViewResult>(result);
+        Assert.Same(viewModel, viewResult.Model);
+        Assert.False(controller.ModelState.IsValid);
+    }
+
+    [Fact]
+    public async Task Edit_Post_WhenServiceSucceeds_RedirectsToIndex()
+    {
+        var service = new Mock<IInvoiceService>();
+        var controller = CreateController(service.Object);
+        var viewModel = new InvoiceEditViewModel
+        {
+            Id = 5,
+            InvoiceNumber = "INV-005",
+            CustomerName = "ACME",
+            InvoiceDate = new DateOnly(2026, 5, 1),
+            DueDate = new DateOnly(2026, 5, 15),
+            Status = InvoiceStatus.Sent,
+            Subtotal = 100m,
+            TaxAmount = 12m
+        };
+        service.Setup(invoiceService => invoiceService.UpdateAsync(viewModel))
+            .ReturnsAsync(ServiceResult.Success());
+
+        var result = await controller.Edit(5, viewModel);
+
+        var redirectResult = Assert.IsType<RedirectToActionResult>(result);
+        Assert.Equal(nameof(InvoicesController.Index), redirectResult.ActionName);
     }
 
     [Fact]
