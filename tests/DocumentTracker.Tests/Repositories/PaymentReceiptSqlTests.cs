@@ -39,9 +39,9 @@ public class PaymentReceiptSqlTests
         Assert.Contains("@AmountPaid", PaymentReceiptSql.UpdateInvoiceStatusToPaid);
         Assert.Contains("@UpdatedAtUtc", PaymentReceiptSql.UpdateInvoiceStatusToPaid);
 
-        Assert.Contains("@InvoiceId", PaymentReceiptSql.RecalculateInvoiceStatusAfterReceiptDelete);
-        Assert.Contains("@UpdatedAtUtc", PaymentReceiptSql.RecalculateInvoiceStatusAfterReceiptDelete);
-        Assert.Contains("THEN 'Paid'", PaymentReceiptSql.RecalculateInvoiceStatusAfterReceiptDelete, StringComparison.Ordinal);
-        Assert.Contains("ELSE 'Pending'", PaymentReceiptSql.RecalculateInvoiceStatusAfterReceiptDelete, StringComparison.Ordinal);
+        Assert.Contains("@InvoiceId", PaymentReceiptSql.RecalculateInvoiceStatus);
+        Assert.Contains("@UpdatedAtUtc", PaymentReceiptSql.RecalculateInvoiceStatus);
+        Assert.Contains("THEN 'Paid'", PaymentReceiptSql.RecalculateInvoiceStatus, StringComparison.Ordinal);
+        Assert.Contains("ELSE 'Pending'", PaymentReceiptSql.RecalculateInvoiceStatus, StringComparison.Ordinal);
     }
 }
