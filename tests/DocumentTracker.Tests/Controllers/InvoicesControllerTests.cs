@@ -268,7 +268,7 @@ public class InvoicesControllerTests
         var result = await controller.Edit(5, viewModel);
 
         var redirectResult = Assert.IsType<RedirectToActionResult>(result);
-        Assert.Equal(nameof(InvoicesController.Index), redirectResult.ActionName);
+        Assert.Equal(nameof(InvoicesController.Details), redirectResult.ActionName);
     }
 
     [Fact]

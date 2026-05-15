@@ -281,7 +281,7 @@ public class InvoiceServiceTests
         var result = await service.UpdateAsync(viewModel);
 
         Assert.False(result.Succeeded);
-        Assert.Contains(result.Errors, error => error.Message.Contains("Deleted documents cannot be edited", StringComparison.OrdinalIgnoreCase));
+        Assert.Contains(result.Errors, error => error.Message.Contains("Deleted invoice cannot be edited", StringComparison.OrdinalIgnoreCase));
         _repository.Verify(repository => repository.UpdateAsync(It.IsAny<Invoice>()), Times.Never);
     }
 
