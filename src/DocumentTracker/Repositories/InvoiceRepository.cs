@@ -44,16 +44,6 @@ public class InvoiceRepository : IInvoiceRepository
         var totalCount = await results.ReadSingleAsync<int>();
         var invoices = (await results.ReadAsync<Invoice>()).AsList();
 
-        _logger.LogDebug(
-            "Searched invoices with term {SearchTerm}, invoice date from {InvoiceDateFrom}, invoice date to {InvoiceDateTo}, sort by {SortBy}, sort direction {SortDirection}, page {PageNumber}, page size {PageSize}.",
-            normalizedSearch,
-            invoiceDateFrom,
-            invoiceDateTo,
-            sortBy,
-            sortDirection,
-            pageNumber,
-            pageSize);
-
         return new PagedResult<Invoice>
         {
             Items = invoices,

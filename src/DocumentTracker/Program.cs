@@ -34,6 +34,7 @@ if (!app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 app.UseRouting();
+app.UseStatusCodePagesWithReExecute("/Home/StatusCode/{0}");
 
 app.UseAuthorization();
 
@@ -41,7 +42,7 @@ app.MapStaticAssets();
 
 app.MapControllerRoute(
     name: "default",
-    pattern: "{controller=Documents}/{action=Index}/{id?}")
+    pattern: "{controller=Invoices}/{action=Index}/{id?}")
     .WithStaticAssets();
 
 
