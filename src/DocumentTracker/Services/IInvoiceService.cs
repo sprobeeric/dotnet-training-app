@@ -15,6 +15,7 @@ public interface IInvoiceService
         string? sortDirection,
         int pageNumber,
         int pageSize);
+    Task<InvoiceDetailsViewModel?> GetDetailsAsync(int id);
     Task<ServiceResult<int>> CreateAsync(InvoiceCreateViewModel viewModel);
 
     Task<InvoiceDeleteViewModel?> GetDeleteAsync(int id);

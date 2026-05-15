@@ -57,6 +57,12 @@ public class InvoiceService : IInvoiceService
         return ServiceResult<InvoiceEditViewModel>.Success(ToEdit(invoice));
     }
 
+    public async Task<InvoiceDetailsViewModel?> GetDetailsAsync(int id)
+    {
+        var invoice = await _repository.GetByIdAsync(id);
+        return invoice is null || invoice.DeletedAtUtc is not null ? null : ToDetails(invoice);
+    }
+
     public async Task<ServiceResult> UpdateAsync(InvoiceEditViewModel viewModel)
     {
         var validationResult = Validate(viewModel);
@@ -190,8 +196,25 @@ public class InvoiceService : IInvoiceService
         Subtotal = invoice.Subtotal,
         TaxAmount = invoice.TaxAmount,
         TotalAmount = invoice.TotalAmount,
-        Notes = invoice.Notes
+        Notes = invoice.Notes,
     };
+    private static InvoiceDetailsViewModel ToDetails(Invoice invoice) => new()
+    {
+        Id = invoice.Id,
+        InvoiceNumber = invoice.InvoiceNumber,
+        CustomerName = invoice.CustomerName,
+        InvoiceDate = invoice.InvoiceDate,
+        DueDate = invoice.DueDate,
+        Status = invoice.Status,
+        Subtotal = invoice.Subtotal,
+        TaxAmount = invoice.TaxAmount,
+        TotalAmount = invoice.TotalAmount,
+        Notes = invoice.Notes,
+        CreatedAtUtc = invoice.CreatedAtUtc,
+        UpdatedAtUtc = invoice.UpdatedAtUtc,
+        DeletedAtUtc = invoice.DeletedAtUtc
+    };
+
     public async Task<InvoiceDeleteViewModel?> GetDeleteAsync(int id)
     {
         var invoice = await _repository.GetByIdAsync(id);

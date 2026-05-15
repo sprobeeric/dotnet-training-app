@@ -123,6 +123,32 @@ public class InvoicesControllerTests
         var controller = CreateController(service.Object);
 
         var result = await controller.Edit(5);
+        var viewResult = Assert.IsType<ViewResult>(result);
+        Assert.Same(viewModel, viewResult.Model);
+    }
+    [Fact]
+    public async Task Details_WhenInvoiceNotFound_ReturnsNotFound()
+    {
+        var service = new Mock<IInvoiceService>();
+        service.Setup(invoiceService => invoiceService.GetDetailsAsync(42)).ReturnsAsync((InvoiceDetailsViewModel?)null);
+
+        var controller = CreateController(service.Object);
+
+        var result = await controller.Details(42);
+
+        Assert.IsType<NotFoundResult>(result);
+    }
+
+    [Fact]
+    public async Task Details_WhenInvoiceExists_ReturnsViewWithViewModel()
+    {
+        var viewModel = new InvoiceDetailsViewModel { Id = 7, InvoiceNumber = "INV-007" };
+        var service = new Mock<IInvoiceService>();
+        service.Setup(invoiceService => invoiceService.GetDetailsAsync(7)).ReturnsAsync(viewModel);
+
+        var controller = CreateController(service.Object);
+
+        var result = await controller.Details(7);
 
         var viewResult = Assert.IsType<ViewResult>(result);
         Assert.Same(viewModel, viewResult.Model);
@@ -271,7 +297,8 @@ public class InvoicesControllerTests
         var result = await controller.Create(viewModel);
 
         var redirectResult = Assert.IsType<RedirectToActionResult>(result);
-        Assert.Equal(nameof(InvoicesController.Index), redirectResult.ActionName);
+        Assert.Equal(nameof(InvoicesController.Details), redirectResult.ActionName);
+        Assert.Equal(10, redirectResult.RouteValues?["id"]);
     }
 
     [Fact]
