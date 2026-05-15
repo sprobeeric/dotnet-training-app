@@ -83,7 +83,7 @@ public class InvoiceService : IInvoiceService
         }
 
         var duplicate = await _repository.GetByInvoiceNumberAsync(viewModel.InvoiceNumber);
-        if (duplicate is not null && duplicate.InvoiceNumber != viewModel.InvoiceNumber)
+        if (duplicate is not null && duplicate.Id != viewModel.Id)
         {
             return ServiceResult.Failure(nameof(viewModel.InvoiceNumber), "A invoice with this invoice number already exists.");
         }
