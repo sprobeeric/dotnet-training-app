@@ -108,7 +108,7 @@ public class InvoicesController : Controller
             AddServiceErrors(result);
             return View(viewModel);
         }
-        return RedirectToAction(nameof(Index));
+        return RedirectToAction(nameof(Details), new { id = viewModel.Id });
     }
     
     [HttpPost]

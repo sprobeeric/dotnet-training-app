@@ -46,12 +46,12 @@ public class InvoiceService : IInvoiceService
         var invoice = await _repository.GetByIdAsync(id);
         if (invoice is null)
         {
-            return ServiceResult<InvoiceEditViewModel>.Failure(string.Empty, "The document was not found.");
+            return ServiceResult<InvoiceEditViewModel>.Failure(string.Empty, "The invoice was not found.");
         }
 
         if (invoice.DeletedAtUtc is not null)
         {
-            return ServiceResult<InvoiceEditViewModel>.Failure(string.Empty, "Deleted documents cannot be edited.");
+            return ServiceResult<InvoiceEditViewModel>.Failure(string.Empty, "Deleted invoice cannot be edited.");
         }
 
         return ServiceResult<InvoiceEditViewModel>.Success(ToEdit(invoice));
@@ -79,7 +79,7 @@ public class InvoiceService : IInvoiceService
 
         if (invoiceData.DeletedAtUtc is not null)
         {
-            return ServiceResult.Failure(string.Empty, "Deleted documents cannot be edited.");
+            return ServiceResult.Failure(string.Empty, "Deleted invoice cannot be edited.");
         }
 
         var duplicate = await _repository.GetByInvoiceNumberAsync(viewModel.InvoiceNumber);
@@ -105,7 +105,7 @@ public class InvoiceService : IInvoiceService
         var updated = await _repository.UpdateAsync(invoiceData);
         return updated
             ? ServiceResult.Success()
-            : ServiceResult.Failure(string.Empty, "The document could not be updated. It may have been deleted by another user.");
+            : ServiceResult.Failure(string.Empty, "The invoice could not be updated. It may have been deleted by another user.");
     }
 
     private static ServiceResult Validate(InvoiceEditViewModel viewModel)
