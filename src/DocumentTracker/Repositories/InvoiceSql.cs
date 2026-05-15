@@ -17,6 +17,32 @@ public static class InvoiceSql
         updated_at_utc AS UpdatedAtUtc,
         deleted_at_utc AS DeletedAtUtc
         """;
+    public const string GetById = $"""
+        SELECT {SelectColumns}
+        FROM invoices
+        WHERE id = @Id;
+        """;
+    public const string GetByInvoiceNumber = $"""
+        SELECT {SelectColumns}
+        FROM invoices
+        WHERE lower(invoice_number) = lower(@InvoiceNumber)
+        LIMIT 1;
+        """;
+    public const string UpdateInvoice = """
+        UPDATE invoices
+        SET invoice_number = @InvoiceNumber,
+            customer_name = @CustomerName,
+            invoice_date = @InvoiceDate,
+            due_date = @DueDate,
+            status = @Status,
+            subtotal = @Subtotal,
+            tax_amount = @TaxAmount,
+            total_amount = @TotalAmount,
+            notes = @Notes,
+            updated_at_utc = @UpdatedAtUtc
+        WHERE id = @Id
+        AND deleted_at_utc IS NULL;
+        """;
 
     public const string InvoiceNumberExists = """
         SELECT EXISTS (
@@ -47,23 +73,15 @@ public static class InvoiceSql
             AND (@InvoiceDateFrom IS NULL OR invoice_date >= @InvoiceDateFrom)
             AND (@InvoiceDateTo IS NULL OR invoice_date <= @InvoiceDateTo)
         """;
-
     public const string CountInvoices = $"""
         SELECT COUNT(*)
         {SearchFilters};
         """;
-
     public static string SearchInvoicesPage(string orderByClause) => $"""
         SELECT {SelectColumns}
         {SearchFilters}
         ORDER BY {orderByClause}
         LIMIT @PageSize OFFSET @Offset;
-        """;
-
-        public const string GetById = $"""
-        SELECT {SelectColumns}
-        FROM invoices
-        WHERE id = @Id;
         """;
 
     public const string SoftDeleteInvoice = """
@@ -74,4 +92,3 @@ public static class InvoiceSql
           AND deleted_at_utc IS NULL;
         """;
 }
-

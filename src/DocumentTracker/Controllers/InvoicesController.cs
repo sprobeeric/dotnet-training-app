@@ -59,6 +59,18 @@ public class InvoicesController : Controller
         });
     }
 
+    public async Task<IActionResult> Edit(int id)
+    {
+        var result = await _invoiceService.GetEditAsync(id);
+        if (!result.Succeeded || result.Value is null)
+        {
+            AddServiceErrors(result);
+            return View("ErrorMessage");
+        }
+
+        return View(result.Value);
+    }
+    [HttpGet]
     public async Task<IActionResult> Details(int id)
     {
         var invoice = await _invoiceService.GetDetailsAsync(id);
@@ -76,6 +88,29 @@ public class InvoicesController : Controller
         return View(viewModel);
     }
 
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> Edit(int id, InvoiceEditViewModel viewModel)
+    {
+        if (id != viewModel.Id)
+        {
+            return BadRequest();
+        }
+
+        if (!ModelState.IsValid)
+        {
+            return View(viewModel);
+        }
+
+        var result = await _invoiceService.UpdateAsync(viewModel);
+        if (!result.Succeeded)
+        {
+            AddServiceErrors(result);
+            return View(viewModel);
+        }
+        return RedirectToAction(nameof(Details), new { id = viewModel.Id });
+    }
+    
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Create(InvoiceCreateViewModel viewModel)

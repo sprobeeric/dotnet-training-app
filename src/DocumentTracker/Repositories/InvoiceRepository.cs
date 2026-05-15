@@ -15,6 +15,34 @@ public class InvoiceRepository : IInvoiceRepository
         _logger = logger;
     }
 
+    public async Task<Invoice?> GetByIdAsync(int id)
+    {
+        await using var connection = await _dataSource.OpenConnectionAsync();
+        return await connection.QuerySingleOrDefaultAsync<Invoice>(InvoiceSql.GetById, new { Id = id });
+    }
+
+    public async Task<Invoice?> GetByInvoiceNumberAsync(string invoiceNumber)
+    {
+        await using var connection = await _dataSource.OpenConnectionAsync();
+        return await connection.QuerySingleOrDefaultAsync<Invoice>(
+            InvoiceSql.GetByInvoiceNumber,
+            new { InvoiceNumber = invoiceNumber.Trim() });
+    }
+
+    public async Task<bool> UpdateAsync(Invoice invoice)
+    {
+        await using var connection = await _dataSource.OpenConnectionAsync();
+        await using var transaction = await connection.BeginTransactionAsync();
+
+        var rows = await connection.ExecuteAsync(
+            InvoiceSql.UpdateInvoice,
+            ToParameters(invoice),
+            transaction);
+
+        await transaction.CommitAsync();
+        _logger.LogInformation("Updated Invoice with id {InvoiceId}. Rows affected: {RowsAffected}.", invoice.Id, rows);
+        return rows == 1;
+    }
     public async Task<PagedResult<Invoice>> SearchAsync(
         string? searchTerm,
         DateOnly? invoiceDateFrom,
@@ -114,13 +142,6 @@ public class InvoiceRepository : IInvoiceRepository
             invoice.UpdatedAtUtc
         };
     }
-
-    public async Task<Invoice?> GetByIdAsync(int id)
-    {
-        await using var connection = await _dataSource.OpenConnectionAsync();
-        return await connection.QuerySingleOrDefaultAsync<Invoice>(InvoiceSql.GetById, new { Id = id });
-    }
-
     public async Task<bool> SoftDeleteAsync(int id, DateTime deletedAtUtc)
     {
         await using var connection = await _dataSource.OpenConnectionAsync();

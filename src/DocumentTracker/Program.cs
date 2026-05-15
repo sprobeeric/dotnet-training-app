@@ -45,5 +45,4 @@ app.MapControllerRoute(
     pattern: "{controller=Invoices}/{action=Index}/{id?}")
     .WithStaticAssets();
 
-
 app.Run();

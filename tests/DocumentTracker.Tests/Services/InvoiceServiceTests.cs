@@ -232,6 +232,143 @@ public class InvoiceServiceTests
         Assert.Equal(InvoiceStatus.Sent, invoice.Status);
         Assert.Equal(12, result.TotalCount);
     }
+    [Fact]
+    public async Task UpdateAsync_WithValidationFailure_DoesNotCallRepositoryUpdate()
+    {
+        var service = CreateService();
+        var viewModel = ValidEditViewModel();
+        viewModel.InvoiceNumber = string.Empty;
+
+        var result = await service.UpdateAsync(viewModel);
+
+        Assert.False(result.Succeeded);
+        Assert.Contains(result.Errors, error => error.Key == nameof(InvoiceEditViewModel.InvoiceNumber));
+        _repository.Verify(repository => repository.UpdateAsync(It.IsAny<Invoice>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task UpdateAsync_WhenInvoiceIsMissing_ReturnsNotFoundError()
+    {
+        var service = CreateService();
+        var viewModel = ValidEditViewModel();
+
+        _repository
+            .Setup(repository => repository.GetByIdAsync(viewModel.Id))
+            .ReturnsAsync((Invoice?)null);
+
+        var result = await service.UpdateAsync(viewModel);
+
+        Assert.False(result.Succeeded);
+        Assert.Contains(result.Errors, error => error.Message.Contains("not found", StringComparison.OrdinalIgnoreCase));
+        _repository.Verify(repository => repository.UpdateAsync(It.IsAny<Invoice>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task UpdateAsync_WhenInvoiceIsDeleted_ReturnsDeletedInvoiceError()
+    {
+        var service = CreateService();
+        var viewModel = ValidEditViewModel();
+
+        _repository
+            .Setup(repository => repository.GetByIdAsync(viewModel.Id))
+            .ReturnsAsync(new Invoice
+            {
+                Id = viewModel.Id,
+                InvoiceNumber = viewModel.InvoiceNumber,
+                DeletedAtUtc = DateTime.UtcNow
+            });
+
+        var result = await service.UpdateAsync(viewModel);
+
+        Assert.False(result.Succeeded);
+        Assert.Contains(result.Errors, error => error.Message.Contains("Deleted invoice cannot be edited", StringComparison.OrdinalIgnoreCase));
+        _repository.Verify(repository => repository.UpdateAsync(It.IsAny<Invoice>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task UpdateAsync_WithDuplicateInvoiceNumber_ReturnsValidationError()
+    {
+        var service = CreateService();
+        var viewModel = ValidEditViewModel();
+
+        _repository
+            .Setup(repository => repository.GetByIdAsync(viewModel.Id))
+            .ReturnsAsync(new Invoice { Id = viewModel.Id, InvoiceNumber = "INV-100" });
+
+        _repository
+            .Setup(repository => repository.GetByInvoiceNumberAsync("INV-100"))
+            .ReturnsAsync(new Invoice { Id = 7, InvoiceNumber = "INV-101" });
+
+        var result = await service.UpdateAsync(viewModel);
+
+        Assert.False(result.Succeeded);
+        Assert.Contains(result.Errors, error => error.Key == nameof(InvoiceEditViewModel.InvoiceNumber));
+        _repository.Verify(repository => repository.UpdateAsync(It.IsAny<Invoice>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task UpdateAsync_WithValidInvoice_UpdatesInvoice()
+    {
+        var service = CreateService();
+        var viewModel = ValidEditViewModel();
+
+        _repository
+            .Setup(repository => repository.GetByIdAsync(viewModel.Id))
+            .ReturnsAsync(new Invoice
+            {
+                Id = viewModel.Id,
+                InvoiceNumber = "OLD-100",
+                CustomerName = "Old Customer",
+                InvoiceDate = new DateOnly(2026, 1, 1),
+                DueDate = new DateOnly(2026, 1, 15),
+                Status = InvoiceStatus.Draft,
+                Subtotal = 100m,
+                TaxAmount = 12m,
+                TotalAmount = 112m,
+                Notes = "Old notes"
+            });
+
+        _repository
+            .Setup(repository => repository.GetByInvoiceNumberAsync("INV-100"))
+            .ReturnsAsync((Invoice?)null);
+
+        _repository
+            .Setup(repository => repository.UpdateAsync(It.IsAny<Invoice>()))
+            .ReturnsAsync(true);
+
+        var result = await service.UpdateAsync(viewModel);
+
+        Assert.True(result.Succeeded);
+        _repository.Verify(repository => repository.UpdateAsync(It.Is<Invoice>(invoice =>
+            invoice.Id == viewModel.Id &&
+            invoice.InvoiceNumber == "INV-100" &&
+            invoice.CustomerName == "Acme Corp" &&
+            invoice.InvoiceDate == new DateOnly(2026, 5, 1) &&
+            invoice.DueDate == new DateOnly(2026, 5, 31) &&
+            invoice.Status == InvoiceStatus.Draft &&
+            invoice.Subtotal == 1000m &&
+            invoice.TaxAmount == 120m &&
+            invoice.TotalAmount == 1120m &&
+            invoice.Notes == "Updated invoice notes" &&
+            invoice.UpdatedAtUtc.HasValue &&
+            invoice.UpdatedAtUtc.Value.Kind == DateTimeKind.Utc)), Times.Once);
+    }
+
+    private InvoiceService CreateService() => new(_repository.Object, Mock.Of<ILogger<InvoiceService>>());
+
+    private static InvoiceEditViewModel ValidEditViewModel() => new()
+    {
+        Id = 5,
+        InvoiceNumber = "INV-100",
+        CustomerName = "Acme Corp",
+        InvoiceDate = new DateOnly(2026, 5, 1),
+        DueDate = new DateOnly(2026, 5, 31),
+        Status = InvoiceStatus.Draft,
+        Subtotal = 1000m,
+        TaxAmount = 120m,
+        TotalAmount = 1120m,
+        Notes = "Updated invoice notes"
+    };
 
     [Fact]
     public async Task CreateAsync_WithValidInvoice_CreatesInvoice()
@@ -307,28 +444,35 @@ public class InvoiceServiceTests
     }
 
     [Fact]
-    public async Task CreateAsync_WhenDueDateIsBeforeInvoiceDate_ReturnsValidationError()
+    public async Task CreateAsync_WhenDueDateIsValid_CreatesInvoice()
     {
         var repository = new Mock<IInvoiceRepository>();
         var logger = new Mock<ILogger<InvoiceService>>();
         var service = new InvoiceService(repository.Object, logger.Object);
-    
+
         var viewModel = new InvoiceCreateViewModel
         {
             InvoiceNumber = "INV-100",
             CustomerName = "ACME",
             InvoiceDate = new DateOnly(2026, 5, 15),
-            DueDate = new DateOnly(2026, 5, 1),
+            DueDate = new DateOnly(2026, 5, 20),
             Status = InvoiceStatus.Sent,
             Subtotal = 100m,
             TaxAmount = 12m
         };
-    
+
+        repository
+            .Setup(repository => repository.InvoiceNumberExistsAsync("INV-100", null))
+            .ReturnsAsync(false);
+
+        repository
+            .Setup(repository => repository.CreateAsync(It.IsAny<Invoice>()))
+            .ReturnsAsync(1);
+
         var result = await service.CreateAsync(viewModel);
-    
-        Assert.False(result.Succeeded);
-        Assert.Contains(result.Errors, error => error.Key == nameof(InvoiceCreateViewModel.DueDate));
-        repository.Verify(repository => repository.InvoiceNumberExistsAsync(It.IsAny<string>(), It.IsAny<int?>()), Times.Never);
-        repository.Verify(repository => repository.CreateAsync(It.IsAny<Invoice>()), Times.Never);
+
+        Assert.True(result.Succeeded);
+        repository.Verify(repository => repository.InvoiceNumberExistsAsync("INV-100", null), Times.Once);
+        repository.Verify(repository => repository.CreateAsync(It.IsAny<Invoice>()), Times.Once);
     }
 }

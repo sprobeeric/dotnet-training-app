@@ -41,13 +41,29 @@ public class InvoiceService : IInvoiceService
         };
     }
 
+    public async Task<ServiceResult<InvoiceEditViewModel>> GetEditAsync(int id)
+    {
+        var invoice = await _repository.GetByIdAsync(id);
+        if (invoice is null)
+        {
+            return ServiceResult<InvoiceEditViewModel>.Failure(string.Empty, "The invoice was not found.");
+        }
+
+        if (invoice.DeletedAtUtc is not null)
+        {
+            return ServiceResult<InvoiceEditViewModel>.Failure(string.Empty, "Deleted invoice cannot be edited.");
+        }
+
+        return ServiceResult<InvoiceEditViewModel>.Success(ToEdit(invoice));
+    }
+
     public async Task<InvoiceDetailsViewModel?> GetDetailsAsync(int id)
     {
         var invoice = await _repository.GetByIdAsync(id);
         return invoice is null || invoice.DeletedAtUtc is not null ? null : ToDetails(invoice);
     }
 
-    public async Task<ServiceResult<int>> CreateAsync(InvoiceCreateViewModel viewModel)
+    public async Task<ServiceResult> UpdateAsync(InvoiceEditViewModel viewModel)
     {
         var validationResult = Validate(viewModel);
         if (!validationResult.Succeeded)
@@ -55,6 +71,52 @@ public class InvoiceService : IInvoiceService
             return validationResult;
         }
 
+        var invoiceData = await _repository.GetByIdAsync(viewModel.Id);
+        if (invoiceData is null)
+        {
+            return ServiceResult.Failure(string.Empty, "The invoice was not found.");
+        }
+
+        if (invoiceData.DeletedAtUtc is not null)
+        {
+            return ServiceResult.Failure(string.Empty, "Deleted invoice cannot be edited.");
+        }
+
+        var duplicate = await _repository.GetByInvoiceNumberAsync(viewModel.InvoiceNumber);
+        if (duplicate is not null && duplicate.Id != viewModel.Id)
+        {
+            return ServiceResult.Failure(nameof(viewModel.InvoiceNumber), "A invoice with this invoice number already exists.");
+        }
+
+        invoiceData.InvoiceNumber = viewModel.InvoiceNumber.Trim();
+        invoiceData.CustomerName = viewModel.CustomerName.Trim();
+        invoiceData.InvoiceDate = viewModel.InvoiceDate;
+        invoiceData.DueDate = viewModel.DueDate;
+        invoiceData.Status = viewModel.Status!.Value;
+        invoiceData.Subtotal = viewModel.Subtotal;
+        invoiceData.TaxAmount = viewModel.TaxAmount;
+        invoiceData.TotalAmount = viewModel.TotalAmount;
+        invoiceData.Notes = string.IsNullOrWhiteSpace(viewModel.Notes)
+            ? null
+            : viewModel.Notes.Trim();
+
+        invoiceData.UpdatedAtUtc = DateTime.UtcNow;
+
+        var updated = await _repository.UpdateAsync(invoiceData);
+        return updated
+            ? ServiceResult.Success()
+            : ServiceResult.Failure(string.Empty, "The invoice could not be updated. It may have been deleted by another user.");
+    }
+
+    private static ServiceResult Validate(InvoiceEditViewModel viewModel)
+    {
+        var result = new ServiceResult();
+        AddValidationErrors(viewModel, result);
+        return result;
+    }
+    
+    public async Task<ServiceResult<int>> CreateAsync(InvoiceCreateViewModel viewModel)
+    {
         var invoiceNumberExists = await _repository.InvoiceNumberExistsAsync(viewModel.InvoiceNumber);
         if (invoiceNumberExists)
         {
@@ -123,6 +185,19 @@ public class InvoiceService : IInvoiceService
         UpdatedAtUtc = invoice.UpdatedAtUtc
     };
 
+    private static InvoiceEditViewModel ToEdit(Invoice invoice) => new()
+    {
+        Id = invoice.Id,
+        InvoiceNumber = invoice.InvoiceNumber,
+        CustomerName = invoice.CustomerName,
+        InvoiceDate = invoice.InvoiceDate,
+        DueDate = invoice.DueDate,
+        Status = invoice.Status,
+        Subtotal = invoice.Subtotal,
+        TaxAmount = invoice.TaxAmount,
+        TotalAmount = invoice.TotalAmount,
+        Notes = invoice.Notes,
+    };
     private static InvoiceDetailsViewModel ToDetails(Invoice invoice) => new()
     {
         Id = invoice.Id,
