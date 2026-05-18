@@ -9,6 +9,7 @@ src/DocumentTracker/wwwroot/lib/
 .vs/
 .vscode/
 .idea/
+*.lscache
 *.user
 *.suo
 *.userosscache

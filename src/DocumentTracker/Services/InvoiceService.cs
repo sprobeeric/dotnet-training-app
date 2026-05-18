@@ -95,7 +95,7 @@ public class InvoiceService : IInvoiceService
         invoiceData.Status = viewModel.Status!.Value;
         invoiceData.Subtotal = viewModel.Subtotal;
         invoiceData.TaxAmount = viewModel.TaxAmount;
-        invoiceData.TotalAmount = viewModel.TotalAmount;
+        invoiceData.TaxAmount = viewModel.Subtotal + viewModel.TaxAmount;
         invoiceData.Notes = string.IsNullOrWhiteSpace(viewModel.Notes)
             ? null
             : viewModel.Notes.Trim();
