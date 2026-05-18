@@ -117,6 +117,12 @@ public class InvoiceService : IInvoiceService
     
     public async Task<ServiceResult<int>> CreateAsync(InvoiceCreateViewModel viewModel)
     {
+        var validationResult = Validate(viewModel);
+        if (!validationResult.Succeeded)
+        {
+            return validationResult;
+        }
+
         var invoiceNumberExists = await _repository.InvoiceNumberExistsAsync(viewModel.InvoiceNumber);
         if (invoiceNumberExists)
         {
