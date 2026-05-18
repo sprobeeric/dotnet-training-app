@@ -95,7 +95,7 @@ public class InvoiceService : IInvoiceService
         invoiceData.Status = viewModel.Status!.Value;
         invoiceData.Subtotal = viewModel.Subtotal;
         invoiceData.TaxAmount = viewModel.TaxAmount;
-        invoiceData.TaxAmount = viewModel.Subtotal + viewModel.TaxAmount;
+        invoiceData.TotalAmount = invoiceData.Subtotal + invoiceData.TaxAmount;
         invoiceData.Notes = string.IsNullOrWhiteSpace(viewModel.Notes)
             ? null
             : viewModel.Notes.Trim();
@@ -117,12 +117,6 @@ public class InvoiceService : IInvoiceService
     
     public async Task<ServiceResult<int>> CreateAsync(InvoiceCreateViewModel viewModel)
     {
-        var validationResult = Validate(viewModel);
-        if (!validationResult.Succeeded)
-        {
-            return validationResult;
-        }
-
         var invoiceNumberExists = await _repository.InvoiceNumberExistsAsync(viewModel.InvoiceNumber);
         if (invoiceNumberExists)
         {
